@@ -21,14 +21,14 @@ class AdminAccountServiceTest {
     private val adminConfig =
         configOf(
             "app.admin.username" to "admin",
-            "app.admin.password" to "new-password",
+            "app.admin.password" to "new-password-0123456789",
         )
 
     @Test
     fun `設定のパスワードがDBのハッシュと一致すれば更新しない`() =
         runBlocking {
             coEvery { userRepository.findByUsername("admin") } returns
-                User(1, "admin", BCrypt.hashpw("new-password", BCrypt.gensalt()))
+                User(1, "admin", BCrypt.hashpw("new-password-0123456789", BCrypt.gensalt()))
 
             AdminAccountService(userRepository, adminConfig).syncPasswordWithConfig()
 
@@ -45,20 +45,21 @@ class AdminAccountServiceTest {
 
             AdminAccountService(userRepository, adminConfig).syncPasswordWithConfig()
 
-            assertTrue(BCrypt.checkpw("new-password", newHash.captured))
+            assertTrue(BCrypt.checkpw("new-password-0123456789", newHash.captured))
         }
 
     @Test
     fun `DBのハッシュが照合できない形式なら設定の値で更新する`() =
         runBlocking {
-            coEvery { userRepository.findByUsername("admin") } returns
-                User(1, "admin", BCrypt.hashpw("new-password", BCrypt.gensalt()).replaceFirst("\$2a\$", "\$2y\$"))
+            val unverifiableHash =
+                BCrypt.hashpw("new-password-0123456789", BCrypt.gensalt()).replaceFirst("\$2a\$", "\$2y\$")
+            coEvery { userRepository.findByUsername("admin") } returns User(1, "admin", unverifiableHash)
             val newHash = slot<String>()
             coEvery { userRepository.updatePasswordHash("admin", capture(newHash)) } returns true
 
             AdminAccountService(userRepository, adminConfig).syncPasswordWithConfig()
 
-            assertTrue(BCrypt.checkpw("new-password", newHash.captured))
+            assertTrue(BCrypt.checkpw("new-password-0123456789", newHash.captured))
         }
 
     @Test
@@ -78,5 +79,33 @@ class AdminAccountServiceTest {
             AdminAccountService(userRepository, configOf()).syncPasswordWithConfig()
 
             coVerify(exactly = 0) { userRepository.findByUsername(any()) }
+        }
+
+    @Test
+    fun `設定のパスワードが16文字未満なら既存のパスワードを残す`() =
+        runBlocking {
+            coEvery { userRepository.findByUsername("admin") } returns
+                User(1, "admin", BCrypt.hashpw("old-password-0123456789", BCrypt.gensalt()))
+
+            AdminAccountService(
+                userRepository,
+                configOf("app.admin.username" to "admin", "app.admin.password" to "short-pass"),
+            ).syncPasswordWithConfig()
+
+            coVerify(exactly = 0) { userRepository.updatePasswordHash(any(), any()) }
+        }
+
+    @Test
+    fun `設定のパスワードが雛形のままなら既存のパスワードを残す`() =
+        runBlocking {
+            coEvery { userRepository.findByUsername("admin") } returns
+                User(1, "admin", BCrypt.hashpw("old-password-0123456789", BCrypt.gensalt()))
+
+            AdminAccountService(
+                userRepository,
+                configOf("app.admin.username" to "admin", "app.admin.password" to "YOUR_ADMIN_PASSWORD"),
+            ).syncPasswordWithConfig()
+
+            coVerify(exactly = 0) { userRepository.updatePasswordHash(any(), any()) }
         }
 }

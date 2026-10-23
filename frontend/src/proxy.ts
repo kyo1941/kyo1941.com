@@ -16,7 +16,7 @@ const JWT_AUDIENCE = getEnvVar("JWT_AUDIENCE");
 
 const LOGIN_URL = "/admin/login";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (request.nextUrl.pathname === LOGIN_URL) {
     return NextResponse.next();
   }

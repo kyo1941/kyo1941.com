@@ -13,7 +13,6 @@
 ├── backend/    Ktor + Kotlin + Koin + Exposed + Flyway + MySQL
 ├── mcp/        ブログ操作用 MCP stdio サーバー
 ├── docker-compose.yml
-├── railway.json
 └── README.md
 ```
 
@@ -29,7 +28,15 @@ Ktor backend :8080
   └─ MySQL :3306
 ```
 
-本番バックエンドは `railway.json` で Railway の Dockerfile ビルドが設定されています。`CLAUDE.md` に Render と書かれた古い記述があるため、本番 URL やホスティング先を変更・追記するときは Vercel/Railway 側の実設定を確認してから更新してください。
+本番バックエンドは Railway で、ビルド・デプロイ設定は Railway のダッシュボード側にあります（リポジトリには置いていません）。
+以下は控えで、ずれている場合はダッシュボードが正です。
+
+- Builder: Dockerfile（`backend/Dockerfile`）
+- Root Directory: 空のまま（Dockerfile がリポジトリ直下をビルドコンテキストとして `backend/...` を COPY するため）
+- Restart Policy: On Failure（最大 10 回）
+
+Railway の Config as Code（`railway.json` / `railway.toml`）は 2026-12-01 以降読まれなくなるため使っていません。
+`CLAUDE.md` に Render と書かれた古い記述があるため、本番 URL やホスティング先を変更・追記するときは Vercel/Railway 側の実設定を確認してから更新してください。
 
 ## 重要な作業ルール
 

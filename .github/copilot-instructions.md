@@ -29,7 +29,7 @@ Nginx (port 80)
 Next.js frontend (port 3000, dev only) → NEXT_PUBLIC_API_BASE_URL → backend
 ```
 
-- **Frontend**: Next.js 15 (TypeScript) in `frontend/`
+- **Frontend**: Next.js 16 (TypeScript) in `frontend/`
 - **Backend**: Ktor + Kotlin in `backend/`, runs on port 8080
 - **Database**: MySQL 8 via Flyway migrations, using Exposed ORM
 - **DI**: Koin (configured in `backend/app/src/main/kotlin/my/backend/di/AppModule.kt`)
@@ -62,7 +62,7 @@ src/app/ui/<feature>/page.tsx
 - Route constants live in `src/app/routes.ts`
 
 ### Admin Section
-- `/admin/*` routes are protected by JWT middleware (`src/middleware.ts`)
+- `/admin/*` routes are protected by the JWT proxy (`src/proxy.ts`)
 - JWT is verified using `jose` with secret/issuer/audience from env vars (`JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE`)
 - Auth token stored in `auth_token` cookie
 

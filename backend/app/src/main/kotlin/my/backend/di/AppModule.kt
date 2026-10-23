@@ -18,6 +18,7 @@ import my.backend.repository.TagRepository
 import my.backend.repository.TagRepositoryImpl
 import my.backend.repository.UserRepository
 import my.backend.repository.UserRepositoryImpl
+import my.backend.service.AdminAccountService
 import my.backend.service.AuthService
 import my.backend.service.BlogService
 import my.backend.service.ContactService
@@ -79,5 +80,6 @@ fun appModule(config: ApplicationConfig) =
         single { OgpService(get(named("ogp"))) }
         single { PortfolioService(get()) }
         single { AuthService(get(), get()) }
+        single { AdminAccountService(get(), get()) }
         single { TagService(get()) }
     }

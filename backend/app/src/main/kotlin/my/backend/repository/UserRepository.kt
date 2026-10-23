@@ -5,6 +5,7 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.update
 
 data class User(
     val id: Int,
@@ -21,6 +22,11 @@ interface UserRepository {
         username: String,
         passwordHash: String,
     ): User
+
+    suspend fun updatePasswordHash(
+        username: String,
+        passwordHash: String,
+    ): Boolean
 }
 
 class UserRepositoryImpl : UserRepository {
@@ -48,6 +54,16 @@ class UserRepositoryImpl : UserRepository {
                 } get UserTable.id
 
             User(id, username, passwordHash)
+        }
+
+    override suspend fun updatePasswordHash(
+        username: String,
+        passwordHash: String,
+    ): Boolean =
+        newSuspendedTransaction {
+            UserTable.update({ UserTable.username eq username }) {
+                it[UserTable.password] = passwordHash
+            } > 0
         }
 
     private fun toUser(row: ResultRow): User {

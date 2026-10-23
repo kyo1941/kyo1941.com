@@ -9,7 +9,7 @@
 
 ```
 /
-├── frontend/   Next.js 15 + React 19 + TypeScript + Tailwind CSS
+├── frontend/   Next.js 16 + React 19 + TypeScript + Tailwind CSS
 ├── backend/    Ktor + Kotlin + Koin + Exposed + Flyway + MySQL
 ├── mcp/        ブログ操作用 MCP stdio サーバー
 ├── docker-compose.yml
@@ -101,7 +101,7 @@ npm start
 - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`: Cloudflare Turnstile の公開サイトキー。
 - `TURNSTILE_SECRET_KEY`: backend で Turnstile 検証に使う秘密キー。
 - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RECIPIENT_EMAIL`: 問い合わせメール送信用。
-- `JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE`: backend の JWT 発行/検証と frontend middleware の検証で同じ値にします。
+- `JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE`: backend の JWT 発行/検証と frontend proxy の検証で同じ値にします。
 - `ADMIN_USERNAME`, `ADMIN_PASSWORD`: backend では初期管理ユーザーの作成にだけ使います。
   - Flyway の `V2__InsertAdminUser` が DB の初回作成時に一度だけ bcrypt ハッシュを `users` に挿入し、以降のログインは DB のハッシュとだけ照合します。
   - そのため backend の変数を変えてもログインパスワードは変わりません。変更するときは `users.password` を `$2a$` 形式の bcrypt ハッシュで直接更新します（jBCrypt 0.4 は `$2y$` / `$2b$` を受け付けません）。
@@ -116,7 +116,7 @@ backend の `application.yaml` は gitignore 対象です。新しい設定キ�
 
 技術:
 
-- Next.js 15 App Router
+- Next.js 16 App Router
 - React 19
 - TypeScript
 - Tailwind CSS
@@ -130,7 +130,7 @@ backend の `application.yaml` は gitignore 対象です。新しい設定キ�
 frontend/src/app/
 ├── page.tsx                  ルートページ。top UI に委譲
 ├── layout.tsx                ルートレイアウト
-├── middleware.ts             /admin 認証ガード
+├── proxy.ts                  /admin 認証ガード
 ├── routes.ts                 サイト内/外部リンク定数
 ├── api/
 │   ├── auth/login/route.ts   backend login のプロキシ。HttpOnly cookie を設定
@@ -162,8 +162,8 @@ page.tsx
 
 管理画面:
 
-- `/admin` と `/admin/*` は `frontend/src/middleware.ts` で保護されます。
-- middleware は `auth_token` cookie を読み、`JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE` で検証します。
+- `/admin` と `/admin/*` は `frontend/src/proxy.ts` で保護されます。
+- proxy は `auth_token` cookie を読み、`JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE` で検証します。
 - ログインは `frontend/src/app/api/auth/login/route.ts` 経由で backend に委譲し、成功時に HttpOnly cookie を設定します。
 - 管理 API の変更系は `frontend/src/app/api/admin/[...path]/route.ts` 経由で backend に転送され、成功時に該当ページを `revalidatePath()` します。
 - ブログ・ポートフォリオ・タグの管理 UI は `frontend/src/app/admin/` にあります。
@@ -320,7 +320,7 @@ API 概要:
 
 変更範囲に応じて最低限以下を実行してください。
 
-- frontend の表示・repository・middleware を変えた場合: `cd frontend && pnpm lint` または `pnpm check`
+- frontend の表示・repository・proxy を変えた場合: `cd frontend && pnpm lint` または `pnpm check`
 - frontend のビルドや Next.js 設定を変えた場合: `cd frontend && pnpm build`
 - backend の routes/service/repository/db/security を変えた場合: `cd backend && ./gradlew :app:test`
 - backend の Kotlin style を変えた場合: `cd backend && ./gradlew :app:ktlintCheck`
@@ -352,7 +352,7 @@ API 概要:
 認証や cookie を変更するとき:
 
 - backend `Security.kt` は cookie 認証前提です。
-- frontend `middleware.ts`, `api/auth/login/route.ts`, `api/admin/[...path]/route.ts` を同時に確認。
+- frontend `proxy.ts`, `api/auth/login/route.ts`, `api/admin/[...path]/route.ts` を同時に確認。
 - MCP の `authedFetch()` も cookie 前提です。
 
 問い合わせフォームを変更するとき:

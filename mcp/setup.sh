@@ -13,6 +13,14 @@ echo "[1/3] 依存インストールとビルド..."
 (cd "$DIR" && npm install --silent && npm run --silent build)
 
 echo "[2/3] 設定値を Keychain に保存..."
+KEYS=(BACKEND_URL FRONTEND_URL ADMIN_USERNAME ADMIN_PASSWORD)
+PROMPTS=("バックエンド URL（読み取り/ログイン先）" "フロントエンド URL（変更系の経路 & Origin）" "管理者ユーザー名" "管理者パスワード")
+DEFAULTS=("http://localhost:8080" "http://localhost:3000" "" "")
+SECRETS=("" "" "" "secret")
+
+is_stored() { security find-generic-password -s "$SERVICE" -a "$1" >/dev/null 2>&1; }
+stored_value() { security find-generic-password -s "$SERVICE" -a "$1" -w 2>/dev/null; }
+
 # $1=Keychainの項目名 $2=プロンプト $3=既定値 $4=secret(指定時は非表示入力)
 store() {
   local key="$1" prompt="$2" default="${3:-}" secret="${4:-}" val
@@ -27,10 +35,52 @@ store() {
   echo "    ✓ $key を保存"
 }
 
-store BACKEND_URL    "バックエンド URL（読み取り/ログイン先）" "http://localhost:8080"
-store FRONTEND_URL   "フロントエンド URL（変更系の経路 & Origin）" "http://localhost:3000"
-store ADMIN_USERNAME "管理者ユーザー名"
-store ADMIN_PASSWORD "管理者パスワード" "" secret
+targets=" "
+has_stored=""
+for i in "${!KEYS[@]}"; do
+  if is_stored "${KEYS[$i]}"; then
+    has_stored=1
+  else
+    targets="$targets$i "
+  fi
+done
+
+if [ -n "$has_stored" ]; then
+  echo "  保存済みの項目:"
+  for i in "${!KEYS[@]}"; do
+    is_stored "${KEYS[$i]}" || continue
+    if [ -n "${SECRETS[$i]}" ]; then
+      shown="（非表示）"
+    else
+      shown="$(stored_value "${KEYS[$i]}")" || shown="（値を読み取れませんでした）"
+    fi
+    echo "    $((i + 1))) ${KEYS[$i]} = $shown"
+  done
+  read -r -p "  変更する項目の番号（スペース区切り。変更しないなら空のまま Enter）: " answer
+  for n in $answer; do
+    case "$n" in
+      *[!0-9]*) echo "    ✗ 番号で指定してください: $n" >&2; exit 1 ;;
+    esac
+    i=$((n - 1))
+    if [ "$i" -lt 0 ] || [ "$i" -ge "${#KEYS[@]}" ] || ! is_stored "${KEYS[$i]}"; then
+      echo "    ✗ 一覧にない番号です: $n" >&2
+      exit 1
+    fi
+    targets="$targets$i "
+  done
+fi
+
+if [ "$targets" = " " ]; then
+  echo "    変更なし"
+fi
+for i in "${!KEYS[@]}"; do
+  case "$targets" in *" $i "*) ;; *) continue ;; esac
+  default="${DEFAULTS[$i]}"
+  if [ -z "${SECRETS[$i]}" ] && is_stored "${KEYS[$i]}"; then
+    default="$(stored_value "${KEYS[$i]}")" || default="${DEFAULTS[$i]}"
+  fi
+  store "${KEYS[$i]}" "${PROMPTS[$i]}" "$default" "${SECRETS[$i]}"
+done
 
 echo "[3/3] Claude Code に user スコープで登録..."
 if claude mcp list 2>/dev/null | grep -q '^my-page-blog:'; then

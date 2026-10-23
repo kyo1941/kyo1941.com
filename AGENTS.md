@@ -105,6 +105,8 @@ npm start
 - `ADMIN_USERNAME`, `ADMIN_PASSWORD`: backend の管理ユーザー。ログインは DB の `users` のハッシュと照合します。
   - DB の初回作成時は Flyway の `V2__InsertAdminUser` が環境変数から管理ユーザーを挿入します。
   - 以降は起動のたびに `AdminAccountService` が `application.yaml` の `app.admin.*` を読み、`ADMIN_PASSWORD` と DB のハッシュが一致しなければ上書きします。パスワードを変えるときは変数を変えて backend を再デプロイします。
+  - `ADMIN_PASSWORD` が16文字未満、または `YOUR_` で始まる雛形のままなら、エラーログを出して既存のパスワードを残します。
+  - 変数が正なので、古い `ADMIN_PASSWORD` のまま起動したデプロイ（ロールバックなど）があると、DB もその値に戻ります。
   - `ADMIN_USERNAME` のユーザーが DB にいなければ、警告ログを出すだけで作成はしません。ユーザー名を変えても既存の管理ユーザーは改名されません。
   - MCP サーバーは同名の値をログインのたびに使うため、パスワードを変えたら MCP 側の値も合わせて更新します（「MCP サーバー」節を参照）。
 - `CORS_ALLOWED_ORIGINS`: backend CORS と CSRF の許可 Origin。複数指定はカンマ区切り。

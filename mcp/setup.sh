@@ -52,7 +52,7 @@ if [ -n "$has_stored" ]; then
     if [ -n "${SECRETS[$i]}" ]; then
       shown="（非表示）"
     else
-      shown="$(stored_value "${KEYS[$i]}")"
+      shown="$(stored_value "${KEYS[$i]}")" || shown="（値を読み取れませんでした）"
     fi
     echo "    $((i + 1))) ${KEYS[$i]} = $shown"
   done
@@ -77,7 +77,7 @@ for i in "${!KEYS[@]}"; do
   case "$targets" in *" $i "*) ;; *) continue ;; esac
   default="${DEFAULTS[$i]}"
   if [ -z "${SECRETS[$i]}" ] && is_stored "${KEYS[$i]}"; then
-    default="$(stored_value "${KEYS[$i]}")"
+    default="$(stored_value "${KEYS[$i]}")" || default="${DEFAULTS[$i]}"
   fi
   store "${KEYS[$i]}" "${PROMPTS[$i]}" "$default" "${SECRETS[$i]}"
 done

@@ -102,11 +102,11 @@ npm start
 - `TURNSTILE_SECRET_KEY`: backend で Turnstile 検証に使う秘密キー。
 - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RECIPIENT_EMAIL`: 問い合わせメール送信用。
 - `JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE`: backend の JWT 発行/検証と frontend proxy の検証で同じ値にします。
-- `ADMIN_USERNAME`, `ADMIN_PASSWORD`: backend では初期管理ユーザーの作成にだけ使います。
-  - Flyway の `V2__InsertAdminUser` が DB の初回作成時に一度だけ bcrypt ハッシュを `users` に挿入し、以降のログインは DB のハッシュとだけ照合します。
-  - そのため backend の変数を変えてもログインパスワードは変わりません。変更するときは `users.password` を `$2a$` 形式の bcrypt ハッシュで直接更新します（jBCrypt 0.4 は `$2y$` / `$2b$` を受け付けません）。
-  - `application.yaml` の `admin.username` / `admin.password` はどこからも読まれていません。
-  - MCP サーバーは同名の値をログインのたびに使うため、`users.password` を変えたら MCP 側の値も合わせて更新します（「MCP サーバー」節を参照）。
+- `ADMIN_USERNAME`, `ADMIN_PASSWORD`: backend の管理ユーザー。ログインは DB の `users` のハッシュと照合します。
+  - DB の初回作成時は Flyway の `V2__InsertAdminUser` が環境変数から管理ユーザーを挿入します。
+  - 以降は起動のたびに `AdminAccountService` が `application.yaml` の `app.admin.*` を読み、`ADMIN_PASSWORD` と DB のハッシュが一致しなければ上書きします。パスワードを変えるときは変数を変えて backend を再デプロイします。
+  - `ADMIN_USERNAME` のユーザーが DB にいなければ、警告ログを出すだけで作成はしません。ユーザー名を変えても既存の管理ユーザーは改名されません。
+  - MCP サーバーは同名の値をログインのたびに使うため、パスワードを変えたら MCP 側の値も合わせて更新します（「MCP サーバー」節を参照）。
 - `CORS_ALLOWED_ORIGINS`: backend CORS と CSRF の許可 Origin。複数指定はカンマ区切り。
 - `DB_DRIVER`, `DB_URL`, `DB_USER`, `DB_PASSWORD`, `DB_MAX_POOL_SIZE`: backend の HikariCP/Exposed/Flyway 用 DB 設定。
 

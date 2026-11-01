@@ -152,6 +152,7 @@ export const careerData: Career[] = [
           "2025年春季音響学会 ポスター発表",
           "2025年電子通信情報学会 口頭発表",
           "ICICIC2025 口頭発表",
+          "2026 ESS Symposium 口頭発表",
         ],
       },
       {

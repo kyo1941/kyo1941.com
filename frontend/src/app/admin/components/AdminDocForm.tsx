@@ -22,6 +22,9 @@ type AdminDocFormProps = {
   isLoading: boolean;
   publishLabel: string;
   restoreMessage?: string;
+  onDiscardRestoredEdit?: () => void;
+  backupFailed?: boolean;
+  conflictingEdit?: { onRestore: () => void; onDiscard: () => void };
   extraFields?: ReactNode;
 };
 
@@ -41,6 +44,9 @@ export function AdminDocForm({
   isLoading,
   publishLabel,
   restoreMessage,
+  onDiscardRestoredEdit,
+  backupFailed,
+  conflictingEdit,
   extraFields,
 }: AdminDocFormProps) {
   const { previewContent, onCompositionStart, onCompositionEnd } =
@@ -61,12 +67,55 @@ export function AdminDocForm({
 
   const buttonLabel = isDraft ? "下書きを保存する" : publishLabel;
 
+  if (conflictingEdit) {
+    return (
+      <div className="container mx-auto p-8">
+        <h1 className="mb-6 text-3xl font-bold">{heading}</h1>
+        <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+          <p className="mb-3">
+            未保存の入力内容がありますが、その後サーバー側の内容が更新されています。
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded border border-current px-3 py-1 font-bold"
+              onClick={conflictingEdit.onRestore}
+            >
+              入力内容を復元する
+            </button>
+            <button
+              type="button"
+              className="rounded border border-current px-3 py-1"
+              onClick={conflictingEdit.onDiscard}
+            >
+              破棄してサーバーの内容を使う
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-8">
       <h1 className="mb-6 text-3xl font-bold">{heading}</h1>
       {restoreMessage && (
-        <p className="mb-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-800 dark:bg-green-950/60 dark:text-green-300">
-          {restoreMessage}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-800 dark:bg-green-950/60 dark:text-green-300">
+          <p>{restoreMessage}</p>
+          {onDiscardRestoredEdit && (
+            <button
+              type="button"
+              className="rounded border border-current px-3 py-1"
+              onClick={onDiscardRestoredEdit}
+            >
+              破棄する
+            </button>
+          )}
+        </div>
+      )}
+      {backupFailed && (
+        <p className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300">
+          入力内容をブラウザに保存できませんでした。保存するまでページを閉じないでください。
         </p>
       )}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

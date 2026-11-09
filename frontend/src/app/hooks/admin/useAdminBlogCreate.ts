@@ -1,55 +1,83 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BlogUpsertInput } from "@/app/types/blog";
 import { adminBlogRepository } from "@/app/repository/adminBlogRepository";
 import {
   getTodayInputDate,
   toJaLongDateFromInput,
 } from "@/app/hooks/admin/adminDate";
-import {
-  type AdminBlogRestorePayload,
-  clearBlogRestore,
-  isFreshBlogRestore,
-  readBlogRestore,
-} from "@/app/utils/adminBlogRestore";
+import { useUnsavedEditBackup } from "@/app/hooks/admin/useUnsavedEditBackup";
+import { readUnsavedEdit } from "@/app/utils/adminUnsavedEdit";
 
-const RESTORE_MESSAGE = "セッション切れ前の入力内容を復元しました";
+const RESTORE_MESSAGE = "未保存の入力内容を復元しました";
+const NEW_BLOG_DOC_KEY = "blog:new";
+
+type BlogFormValues = {
+  title: string;
+  description: string;
+  content: string;
+  tags: string[];
+  date: string;
+  isDraft: boolean;
+};
 
 export function useAdminBlogCreate() {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [content, setContent] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [date, setDate] = useState(getTodayInputDate());
-  const [isDraft, setIsDraft] = useState(false);
+  const [initialValues] = useState<BlogFormValues>(() => ({
+    title: "",
+    description: "",
+    content: "",
+    tags: [],
+    date: getTodayInputDate(),
+    isDraft: false,
+  }));
+
+  const [title, setTitle] = useState(initialValues.title);
+  const [description, setDescription] = useState(initialValues.description);
+  const [content, setContent] = useState(initialValues.content);
+  const [tags, setTags] = useState(initialValues.tags);
+  const [date, setDate] = useState(initialValues.date);
+  const [isDraft, setIsDraft] = useState(initialValues.isDraft);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [restoreMessage, setRestoreMessage] = useState("");
 
-  const applyRestore = useCallback((payload: AdminBlogRestorePayload) => {
-    setTitle(payload.title);
-    setDescription(payload.description);
-    setContent(payload.content);
-    setTags(payload.tags);
-    setDate(payload.date);
-    setIsDraft(payload.isDraft);
-    setRestoreMessage(RESTORE_MESSAGE);
+  const formValues = useMemo<BlogFormValues>(
+    () => ({ title, description, content, tags, date, isDraft }),
+    [title, description, content, tags, date, isDraft],
+  );
+
+  const { backupFailed, beginBackup, discardBackup } = useUnsavedEditBackup(
+    NEW_BLOG_DOC_KEY,
+    formValues,
+  );
+
+  const applyFormValues = useCallback((values: BlogFormValues) => {
+    setTitle(values.title);
+    setDescription(values.description);
+    setContent(values.content);
+    setTags(values.tags);
+    setDate(values.date);
+    setIsDraft(values.isDraft);
   }, []);
 
   useEffect(() => {
-    const restore = readBlogRestore();
-    if (!restore) return;
-
-    if (!isFreshBlogRestore(restore)) {
-      clearBlogRestore();
+    const unsaved = readUnsavedEdit<BlogFormValues>(NEW_BLOG_DOC_KEY);
+    if (!unsaved) {
+      beginBackup(initialValues);
       return;
     }
 
-    if (restore.kind !== "blog:create") return;
+    applyFormValues(unsaved.values);
+    setRestoreMessage(RESTORE_MESSAGE);
+    beginBackup(initialValues, unsaved.values);
+  }, [applyFormValues, beginBackup, initialValues]);
 
-    applyRestore(restore.payload);
-    clearBlogRestore();
-  }, [applyRestore]);
+  const discardRestoredEdit = useCallback(() => {
+    discardBackup();
+    applyFormValues(initialValues);
+    setRestoreMessage("");
+    beginBackup(initialValues);
+  }, [applyFormValues, beginBackup, discardBackup, initialValues]);
 
   const toggleTag = useCallback((tag: string) => {
     setTags((prev) =>
@@ -72,13 +100,14 @@ export function useAdminBlogCreate() {
 
     try {
       await adminBlogRepository.create(payload);
+      discardBackup();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create blog");
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [title, description, content, tags, date, isDraft]);
+  }, [title, description, content, tags, date, isDraft, discardBackup]);
 
   return {
     form: {
@@ -95,7 +124,7 @@ export function useAdminBlogCreate() {
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, error, restoreMessage },
-    actions: { submitCreate },
+    state: { isLoading, error, restoreMessage, backupFailed },
+    actions: { submitCreate, discardRestoredEdit },
   };
 }

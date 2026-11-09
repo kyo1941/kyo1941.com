@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Blog, BlogUpsertInput } from "@/app/types/blog";
 import { adminBlogRepository } from "@/app/repository/adminBlogRepository";
 import { UnauthorizedError } from "@/app/types/errors";
@@ -6,13 +6,10 @@ import {
   toInputDateStringFromJaDate,
   toJaLongDateFromInput,
 } from "@/app/hooks/admin/adminDate";
-import {
-  clearBlogRestore,
-  isFreshBlogRestore,
-  readBlogRestore,
-} from "@/app/utils/adminBlogRestore";
+import { useUnsavedEditBackup } from "@/app/hooks/admin/useUnsavedEditBackup";
+import { isSameEdit, readUnsavedEdit } from "@/app/utils/adminUnsavedEdit";
 
-const RESTORE_MESSAGE = "セッション切れ前の入力内容を復元しました";
+const RESTORE_MESSAGE = "未保存の入力内容を復元しました";
 
 type BlogFormValues = {
   title: string;
@@ -48,6 +45,20 @@ export function useAdminBlogEdit(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [restoreMessage, setRestoreMessage] = useState("");
+  const [serverValues, setServerValues] = useState<BlogFormValues | null>(null);
+  const [conflictingValues, setConflictingValues] =
+    useState<BlogFormValues | null>(null);
+
+  const formValues = useMemo<BlogFormValues>(
+    () => ({ title, description, content, tags, date, isDraft }),
+    [title, description, content, tags, date, isDraft],
+  );
+
+  const { backupFailed, beginBackup, markSaved, discardBackup } =
+    useUnsavedEditBackup(
+      originalSlug ? `blog:${originalSlug}` : undefined,
+      formValues,
+    );
 
   const applyFormValues = useCallback((values: BlogFormValues) => {
     setTitle(values.title);
@@ -57,6 +68,15 @@ export function useAdminBlogEdit(
     setDate(values.date);
     setIsDraft(values.isDraft);
   }, []);
+
+  const applyUnsavedEdit = useCallback(
+    (unsavedValues: BlogFormValues, server: BlogFormValues) => {
+      applyFormValues(unsavedValues);
+      setRestoreMessage(RESTORE_MESSAGE);
+      beginBackup(server, unsavedValues);
+    },
+    [applyFormValues, beginBackup],
+  );
 
   const onUnauthorizedRef = useRef(onUnauthorized);
   useEffect(() => {
@@ -68,23 +88,26 @@ export function useAdminBlogEdit(
 
     let cancelled = false;
 
-    const restore = readBlogRestore();
-    if (restore && !isFreshBlogRestore(restore)) {
-      clearBlogRestore();
-    } else if (restore?.kind === "blog:edit" && restore.slug === originalSlug) {
-      applyFormValues(restore.payload);
-      setRestoreMessage(RESTORE_MESSAGE);
-      clearBlogRestore();
-      return;
-    }
-
     const fetchBlog = async () => {
       setIsLoading(true);
       setError("");
       try {
         const data: Blog = await adminBlogRepository.get(originalSlug);
         if (cancelled) return;
-        applyFormValues(toFormValues(data));
+
+        const server = toFormValues(data);
+        setServerValues(server);
+
+        const unsaved = readUnsavedEdit<BlogFormValues>(`blog:${originalSlug}`);
+        if (!unsaved) {
+          applyFormValues(server);
+          beginBackup(server);
+        } else if (isSameEdit(unsaved.base, server)) {
+          applyUnsavedEdit(unsaved.values, server);
+        } else {
+          applyFormValues(server);
+          setConflictingValues(unsaved.values);
+        }
       } catch (e) {
         if (cancelled) return;
         if (e instanceof UnauthorizedError) {
@@ -103,7 +126,22 @@ export function useAdminBlogEdit(
     return () => {
       cancelled = true;
     };
-  }, [originalSlug, applyFormValues]);
+  }, [originalSlug, applyFormValues, applyUnsavedEdit, beginBackup]);
+
+  const restoreConflictingEdit = useCallback(() => {
+    if (!conflictingValues || !serverValues) return;
+    applyUnsavedEdit(conflictingValues, serverValues);
+    setConflictingValues(null);
+  }, [applyUnsavedEdit, conflictingValues, serverValues]);
+
+  const discardUnsavedEdit = useCallback(() => {
+    if (!serverValues) return;
+    discardBackup();
+    applyFormValues(serverValues);
+    setRestoreMessage("");
+    setConflictingValues(null);
+    beginBackup(serverValues);
+  }, [applyFormValues, beginBackup, discardBackup, serverValues]);
 
   const toggleTag = useCallback((tag: string) => {
     setTags((prev) =>
@@ -130,13 +168,14 @@ export function useAdminBlogEdit(
     setError("");
     try {
       await adminBlogRepository.update(originalSlug, buildPayload());
+      markSaved(formValues);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update blog");
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [originalSlug, buildPayload]);
+  }, [originalSlug, buildPayload, markSaved, formValues]);
 
   return {
     form: {
@@ -153,7 +192,13 @@ export function useAdminBlogEdit(
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, error, restoreMessage },
-    actions: { submitUpdate },
+    state: {
+      isLoading,
+      error,
+      restoreMessage,
+      backupFailed,
+      hasConflictingEdit: conflictingValues !== null,
+    },
+    actions: { submitUpdate, restoreConflictingEdit, discardUnsavedEdit },
   };
 }

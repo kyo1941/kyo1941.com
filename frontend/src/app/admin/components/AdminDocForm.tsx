@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useRef, useEffect } from "react";
+import { useRef, useLayoutEffect } from "react";
 import { AdminMarkdownPreview } from "./AdminMarkdownPreview";
 import { useCommittedPreview } from "@/app/hooks/admin/useCommittedPreview";
 import { useMarkdownListEditor } from "@/app/hooks/admin/useMarkdownListEditor";
@@ -48,11 +48,15 @@ export function AdminDocForm({
   const { onKeyDown } = useMarkdownListEditor(setContent);
   const contentRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = contentRef.current;
     if (!el) return;
+    // 高さを測り直すために一瞬縮めるとページが短くなり、ブラウザがスクロール位置を切り詰めてしまう。
+    // そのままだと入力のたびにカーソル行が画面下端へ寄るので、測る前の位置に戻す。
+    const scrollY = window.scrollY;
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
+    window.scrollTo(0, scrollY);
   }, [content]);
 
   const buttonLabel = isDraft ? "下書きを保存する" : publishLabel;

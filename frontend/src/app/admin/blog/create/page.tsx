@@ -26,7 +26,7 @@ export default function CreateBlogPage() {
       setIsDraft,
     },
     state: { isLoading, restoreMessage, backupFailed },
-    actions: { submitCreate, discardRestoredEdit },
+    actions: { submitCreate, discardUnsavedEdit },
   } = useAdminBlogCreate();
 
   const {
@@ -66,7 +66,7 @@ export default function CreateBlogPage() {
       isLoading={isLoading}
       publishLabel="ブログを投稿する"
       restoreMessage={restoreMessage}
-      onDiscardRestoredEdit={discardRestoredEdit}
+      onDiscardRestoredEdit={discardUnsavedEdit}
       backupFailed={backupFailed}
       extraFields={
         <div className="mb-4">

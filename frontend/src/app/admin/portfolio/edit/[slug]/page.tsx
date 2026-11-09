@@ -1,14 +1,18 @@
 "use client";
 
-import { useRouter, useParams } from "next/navigation";
+import { usePathname, useRouter, useParams } from "next/navigation";
 import { UnauthorizedError } from "@/app/types/errors";
 import { useAdminPortfolioEdit } from "@/app/hooks/admin/useAdminPortfolioEdit";
 import { AdminDocForm } from "@/app/admin/components/AdminDocForm";
 
 export default function EditPortfolioPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const params = useParams();
   const originalSlug = params.slug as string;
+
+  const redirectToLogin = () =>
+    router.push(`/admin/login?redirect=${encodeURIComponent(pathname)}`);
 
   const {
     form: {
@@ -25,11 +29,9 @@ export default function EditPortfolioPage() {
       isDraft,
       setIsDraft,
     },
-    state: { isLoading },
-    actions: { submitUpdate },
-  } = useAdminPortfolioEdit(originalSlug, {
-    onUnauthorized: () => router.push("/admin/login"),
-  });
+    state: { isLoading, restoreMessage, backupFailed, hasConflictingEdit },
+    actions: { submitUpdate, restoreConflictingEdit, discardUnsavedEdit },
+  } = useAdminPortfolioEdit(originalSlug, { onUnauthorized: redirectToLogin });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +41,7 @@ export default function EditPortfolioPage() {
       router.push("/admin");
     } catch (error) {
       if (error instanceof UnauthorizedError) {
-        router.push("/admin/login");
+        redirectToLogin();
       } else {
         alert("Failed to update portfolio");
       }
@@ -63,6 +65,14 @@ export default function EditPortfolioPage() {
       onSubmit={handleSubmit}
       isLoading={isLoading}
       publishLabel="ポートフォリオを更新する"
+      restoreMessage={restoreMessage}
+      onDiscardRestoredEdit={discardUnsavedEdit}
+      backupFailed={backupFailed}
+      conflictingEdit={
+        hasConflictingEdit
+          ? { onRestore: restoreConflictingEdit, onDiscard: discardUnsavedEdit }
+          : undefined
+      }
       extraFields={
         <div className="mb-4">
           <label className="mb-2 block text-sm font-bold text-gray-700">

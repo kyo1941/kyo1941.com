@@ -1,24 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { BlogUpsertInput } from "@/app/types/blog";
+import type { BlogFormValues, BlogUpsertInput } from "@/app/types/blog";
 import { adminBlogRepository } from "@/app/repository/adminBlogRepository";
 import {
   getTodayInputDate,
   toJaLongDateFromInput,
 } from "@/app/hooks/admin/adminDate";
-import { useUnsavedEditBackup } from "@/app/hooks/admin/useUnsavedEditBackup";
-import { readUnsavedEdit } from "@/app/utils/adminUnsavedEdit";
-
-const RESTORE_MESSAGE = "未保存の入力内容を復元しました";
-const NEW_BLOG_DOC_KEY = "blog:new";
-
-type BlogFormValues = {
-  title: string;
-  description: string;
-  content: string;
-  tags: string[];
-  date: string;
-  isDraft: boolean;
-};
+import { useUnsavedEditRestore } from "@/app/hooks/admin/useUnsavedEditRestore";
 
 export function useAdminBlogCreate() {
   const [initialValues] = useState<BlogFormValues>(() => ({
@@ -39,16 +26,10 @@ export function useAdminBlogCreate() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
-  const [restoreMessage, setRestoreMessage] = useState("");
 
   const formValues = useMemo<BlogFormValues>(
     () => ({ title, description, content, tags, date, isDraft }),
     [title, description, content, tags, date, isDraft],
-  );
-
-  const { backupFailed, beginBackup, discardBackup } = useUnsavedEditBackup(
-    NEW_BLOG_DOC_KEY,
-    formValues,
   );
 
   const applyFormValues = useCallback((values: BlogFormValues) => {
@@ -60,24 +41,22 @@ export function useAdminBlogCreate() {
     setIsDraft(values.isDraft);
   }, []);
 
+  const {
+    restoreMessage,
+    backupFailed,
+    loadBaseValues,
+    discardUnsavedEdit,
+    discardBackup,
+  } = useUnsavedEditRestore({
+    docKey: "blog:new",
+    formValues,
+    applyFormValues,
+    hasServerCopy: false,
+  });
+
   useEffect(() => {
-    const unsaved = readUnsavedEdit<BlogFormValues>(NEW_BLOG_DOC_KEY);
-    if (!unsaved) {
-      beginBackup(initialValues);
-      return;
-    }
-
-    applyFormValues(unsaved.values);
-    setRestoreMessage(RESTORE_MESSAGE);
-    beginBackup(initialValues, unsaved.values);
-  }, [applyFormValues, beginBackup, initialValues]);
-
-  const discardRestoredEdit = useCallback(() => {
-    discardBackup();
-    applyFormValues(initialValues);
-    setRestoreMessage("");
-    beginBackup(initialValues);
-  }, [applyFormValues, beginBackup, discardBackup, initialValues]);
+    loadBaseValues(initialValues);
+  }, [loadBaseValues, initialValues]);
 
   const toggleTag = useCallback((tag: string) => {
     setTags((prev) =>
@@ -125,6 +104,6 @@ export function useAdminBlogCreate() {
       setIsDraft,
     },
     state: { isLoading, error, restoreMessage, backupFailed },
-    actions: { submitCreate, discardRestoredEdit },
+    actions: { submitCreate, discardUnsavedEdit },
   };
 }

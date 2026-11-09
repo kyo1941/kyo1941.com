@@ -1,11 +1,27 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { Portfolio, PortfolioUpsertInput } from "@/app/types/portfolio";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type {
+  Portfolio,
+  PortfolioFormValues,
+  PortfolioUpsertInput,
+} from "@/app/types/portfolio";
 import { adminPortfolioRepository } from "@/app/repository/adminPortfolioRepository";
 import { UnauthorizedError } from "@/app/types/errors";
 import {
   toInputDateStringFromJaDate,
   toJaLongDateFromInput,
 } from "@/app/hooks/admin/adminDate";
+import { useUnsavedEditRestore } from "@/app/hooks/admin/useUnsavedEditRestore";
+
+function toFormValues(data: Portfolio): PortfolioFormValues {
+  return {
+    title: data.title,
+    description: data.description,
+    content: data.content,
+    coverImage: data.coverImage || "",
+    date: toInputDateStringFromJaDate(data.date),
+    isDraft: data.isDraft ?? false,
+  };
+}
 
 export function useAdminPortfolioEdit(
   originalSlug: string | undefined,
@@ -20,6 +36,35 @@ export function useAdminPortfolioEdit(
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
+
+  const formValues = useMemo<PortfolioFormValues>(
+    () => ({ title, description, content, coverImage, date, isDraft }),
+    [title, description, content, coverImage, date, isDraft],
+  );
+
+  const applyFormValues = useCallback((values: PortfolioFormValues) => {
+    setTitle(values.title);
+    setDescription(values.description);
+    setContent(values.content);
+    setCoverImage(values.coverImage);
+    setDate(values.date);
+    setIsDraft(values.isDraft);
+  }, []);
+
+  const {
+    restoreMessage,
+    backupFailed,
+    hasConflictingEdit,
+    loadBaseValues,
+    restoreConflictingEdit,
+    discardUnsavedEdit,
+    markSaved,
+  } = useUnsavedEditRestore({
+    docKey: originalSlug ? `portfolio:${originalSlug}` : undefined,
+    formValues,
+    applyFormValues,
+    hasServerCopy: true,
+  });
 
   const onUnauthorizedRef = useRef(onUnauthorized);
   useEffect(() => {
@@ -37,12 +82,7 @@ export function useAdminPortfolioEdit(
         const data: Portfolio =
           await adminPortfolioRepository.get(originalSlug);
         if (cancelled) return;
-        setTitle(data.title);
-        setDescription(data.description);
-        setContent(data.content);
-        setCoverImage(data.coverImage || "");
-        setDate(toInputDateStringFromJaDate(data.date));
-        setIsDraft(data.isDraft ?? false);
+        loadBaseValues(toFormValues(data));
       } catch (e) {
         if (cancelled) return;
         if (e instanceof UnauthorizedError) {
@@ -61,7 +101,7 @@ export function useAdminPortfolioEdit(
     return () => {
       cancelled = true;
     };
-  }, [originalSlug]);
+  }, [originalSlug, loadBaseValues]);
 
   const buildPayload = useCallback((): PortfolioUpsertInput => {
     return {
@@ -82,13 +122,14 @@ export function useAdminPortfolioEdit(
     setError("");
     try {
       await adminPortfolioRepository.update(originalSlug, buildPayload());
+      markSaved(formValues);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update portfolio");
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [originalSlug, buildPayload]);
+  }, [originalSlug, buildPayload, markSaved, formValues]);
 
   return {
     form: {
@@ -105,7 +146,13 @@ export function useAdminPortfolioEdit(
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, error },
-    actions: { submitUpdate },
+    state: {
+      isLoading,
+      error,
+      restoreMessage,
+      backupFailed,
+      hasConflictingEdit,
+    },
+    actions: { submitUpdate, restoreConflictingEdit, discardUnsavedEdit },
   };
 }

@@ -12,6 +12,7 @@ export function useUnsavedEditBackup<T>(docKey: string | undefined, values: T) {
   const [backupFailed, setBackupFailed] = useState(false);
   const baseRef = useRef<T | null>(null);
   const latestValuesRef = useRef(values);
+  const ownsBackupRef = useRef(false);
 
   const persist = useCallback(() => {
     const base = baseRef.current;
@@ -19,18 +20,20 @@ export function useUnsavedEditBackup<T>(docKey: string | undefined, values: T) {
 
     const current = latestValuesRef.current;
     if (isSameEdit(current, base)) {
-      removeUnsavedEdit(docKey);
+      // 同じ記事を開いた未編集のタブが、別のタブの入力を消さないようにする。
+      if (ownsBackupRef.current) removeUnsavedEdit(docKey);
+      ownsBackupRef.current = false;
       setBackupFailed(false);
       return;
     }
 
-    setBackupFailed(
-      !writeUnsavedEdit(docKey, {
-        savedAt: Date.now(),
-        base,
-        values: current,
-      }),
-    );
+    const written = writeUnsavedEdit(docKey, {
+      savedAt: Date.now(),
+      base,
+      values: current,
+    });
+    ownsBackupRef.current = written;
+    setBackupFailed(!written);
   }, [docKey]);
 
   useEffect(() => {
@@ -60,6 +63,7 @@ export function useUnsavedEditBackup<T>(docKey: string | undefined, values: T) {
   const beginBackup = useCallback((base: T, current: T = base) => {
     baseRef.current = base;
     latestValuesRef.current = current;
+    ownsBackupRef.current = !isSameEdit(current, base);
   }, []);
 
   const markSaved = useCallback(
@@ -72,6 +76,7 @@ export function useUnsavedEditBackup<T>(docKey: string | undefined, values: T) {
 
   const discardBackup = useCallback(() => {
     baseRef.current = null;
+    ownsBackupRef.current = false;
     if (docKey) removeUnsavedEdit(docKey);
     setBackupFailed(false);
   }, [docKey]);

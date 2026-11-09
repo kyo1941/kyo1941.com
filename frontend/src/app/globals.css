@@ -281,6 +281,21 @@ pre code:not(.hljs) {
   display: none;
 }
 
+.prose code::before,
+.prose code::after {
+  content: none;
+}
+
+.prose :not(pre) > code {
+  background-color: color-mix(
+    in oklab,
+    var(--light-gray),
+    var(--foreground) 3%
+  );
+  border-radius: 0.25rem;
+  padding: 0.125em 0.375em;
+}
+
 /* === 空の上のコンテンツ面 === */
 @layer components {
   .sky-surface {

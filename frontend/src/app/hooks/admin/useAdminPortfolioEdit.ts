@@ -58,7 +58,7 @@ export function useAdminPortfolioEdit(
     loadBaseValues,
     restoreConflictingEdit,
     discardUnsavedEdit,
-    markSaved,
+    discardBackup,
   } = useUnsavedEditRestore({
     docKey: originalSlug ? `portfolio:${originalSlug}` : undefined,
     formValues,
@@ -122,14 +122,14 @@ export function useAdminPortfolioEdit(
     setError("");
     try {
       await adminPortfolioRepository.update(originalSlug, buildPayload());
-      markSaved(formValues);
+      discardBackup();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update portfolio");
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [originalSlug, buildPayload, markSaved, formValues]);
+  }, [originalSlug, buildPayload, discardBackup]);
 
   return {
     form: {

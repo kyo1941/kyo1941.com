@@ -54,7 +54,7 @@ export function useAdminBlogEdit(
     loadBaseValues,
     restoreConflictingEdit,
     discardUnsavedEdit,
-    markSaved,
+    discardBackup,
   } = useUnsavedEditRestore({
     docKey: originalSlug ? `blog:${originalSlug}` : undefined,
     formValues,
@@ -124,14 +124,14 @@ export function useAdminBlogEdit(
     setError("");
     try {
       await adminBlogRepository.update(originalSlug, buildPayload());
-      markSaved(formValues);
+      discardBackup();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update blog");
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [originalSlug, buildPayload, markSaved, formValues]);
+  }, [originalSlug, buildPayload, discardBackup]);
 
   return {
     form: {

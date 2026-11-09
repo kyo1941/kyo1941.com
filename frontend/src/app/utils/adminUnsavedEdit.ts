@@ -1,5 +1,6 @@
 export type UnsavedEdit<T> = {
   savedAt: number;
+  ownerId?: string;
   base: T;
   values: T;
 };

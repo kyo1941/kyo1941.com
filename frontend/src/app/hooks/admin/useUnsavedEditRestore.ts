@@ -21,8 +21,10 @@ export function useUnsavedEditRestore<T>({
   const [baseValues, setBaseValues] = useState<T | null>(null);
   const [conflictingValues, setConflictingValues] = useState<T | null>(null);
 
-  const { backupFailed, beginBackup, markSaved, discardBackup } =
-    useUnsavedEditBackup(docKey, formValues);
+  const { backupFailed, beginBackup, discardBackup } = useUnsavedEditBackup(
+    docKey,
+    formValues,
+  );
 
   const applyUnsavedEdit = useCallback(
     (unsavedValues: T, base: T) => {
@@ -73,7 +75,6 @@ export function useUnsavedEditRestore<T>({
     loadBaseValues,
     restoreConflictingEdit,
     discardUnsavedEdit,
-    markSaved,
     discardBackup,
   };
 }

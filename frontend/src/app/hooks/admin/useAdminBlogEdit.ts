@@ -1,27 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { Blog, BlogUpsertInput } from "@/app/types/blog";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Blog, BlogFormValues, BlogUpsertInput } from "@/app/types/blog";
 import { adminBlogRepository } from "@/app/repository/adminBlogRepository";
 import { UnauthorizedError } from "@/app/types/errors";
 import {
   toInputDateStringFromJaDate,
   toJaLongDateFromInput,
 } from "@/app/hooks/admin/adminDate";
-import {
-  clearBlogRestore,
-  isFreshBlogRestore,
-  readBlogRestore,
-} from "@/app/utils/adminBlogRestore";
-
-const RESTORE_MESSAGE = "セッション切れ前の入力内容を復元しました";
-
-type BlogFormValues = {
-  title: string;
-  description: string;
-  content: string;
-  tags: string[];
-  date: string;
-  isDraft: boolean;
-};
+import { useUnsavedEditRestore } from "@/app/hooks/admin/useUnsavedEditRestore";
 
 function toFormValues(data: Blog): BlogFormValues {
   return {
@@ -47,7 +32,11 @@ export function useAdminBlogEdit(
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
-  const [restoreMessage, setRestoreMessage] = useState("");
+
+  const formValues = useMemo<BlogFormValues>(
+    () => ({ title, description, content, tags, date, isDraft }),
+    [title, description, content, tags, date, isDraft],
+  );
 
   const applyFormValues = useCallback((values: BlogFormValues) => {
     setTitle(values.title);
@@ -57,6 +46,21 @@ export function useAdminBlogEdit(
     setDate(values.date);
     setIsDraft(values.isDraft);
   }, []);
+
+  const {
+    restoreMessage,
+    backupFailed,
+    hasConflictingEdit,
+    loadBaseValues,
+    restoreConflictingEdit,
+    discardUnsavedEdit,
+    discardBackup,
+  } = useUnsavedEditRestore({
+    docKey: originalSlug ? `blog:${originalSlug}` : undefined,
+    formValues,
+    applyFormValues,
+    hasServerCopy: true,
+  });
 
   const onUnauthorizedRef = useRef(onUnauthorized);
   useEffect(() => {
@@ -68,23 +72,13 @@ export function useAdminBlogEdit(
 
     let cancelled = false;
 
-    const restore = readBlogRestore();
-    if (restore && !isFreshBlogRestore(restore)) {
-      clearBlogRestore();
-    } else if (restore?.kind === "blog:edit" && restore.slug === originalSlug) {
-      applyFormValues(restore.payload);
-      setRestoreMessage(RESTORE_MESSAGE);
-      clearBlogRestore();
-      return;
-    }
-
     const fetchBlog = async () => {
       setIsLoading(true);
       setError("");
       try {
         const data: Blog = await adminBlogRepository.get(originalSlug);
         if (cancelled) return;
-        applyFormValues(toFormValues(data));
+        loadBaseValues(toFormValues(data));
       } catch (e) {
         if (cancelled) return;
         if (e instanceof UnauthorizedError) {
@@ -103,7 +97,7 @@ export function useAdminBlogEdit(
     return () => {
       cancelled = true;
     };
-  }, [originalSlug, applyFormValues]);
+  }, [originalSlug, loadBaseValues]);
 
   const toggleTag = useCallback((tag: string) => {
     setTags((prev) =>
@@ -130,13 +124,14 @@ export function useAdminBlogEdit(
     setError("");
     try {
       await adminBlogRepository.update(originalSlug, buildPayload());
+      discardBackup();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update blog");
       throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [originalSlug, buildPayload]);
+  }, [originalSlug, buildPayload, discardBackup]);
 
   return {
     form: {
@@ -153,7 +148,13 @@ export function useAdminBlogEdit(
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, error, restoreMessage },
-    actions: { submitUpdate },
+    state: {
+      isLoading,
+      error,
+      restoreMessage,
+      backupFailed,
+      hasConflictingEdit,
+    },
+    actions: { submitUpdate, restoreConflictingEdit, discardUnsavedEdit },
   };
 }

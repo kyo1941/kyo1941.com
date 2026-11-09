@@ -1,12 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { UnauthorizedError } from "@/app/types/errors";
 import { useAdminPortfolioCreate } from "@/app/hooks/admin/useAdminPortfolioCreate";
 import { AdminDocForm } from "@/app/admin/components/AdminDocForm";
 
 export default function CreatePortfolioPage() {
   const router = useRouter();
+  const pathname = usePathname();
 
   const {
     form: {
@@ -23,8 +24,8 @@ export default function CreatePortfolioPage() {
       isDraft,
       setIsDraft,
     },
-    state: { isLoading },
-    actions: { submitCreate },
+    state: { isLoading, restoreMessage, backupFailed },
+    actions: { submitCreate, discardUnsavedEdit },
   } = useAdminPortfolioCreate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +36,7 @@ export default function CreatePortfolioPage() {
       router.push("/admin");
     } catch (error) {
       if (error instanceof UnauthorizedError) {
-        router.push("/admin/login");
+        router.push(`/admin/login?redirect=${encodeURIComponent(pathname)}`);
       } else {
         alert("Failed to create portfolio");
       }
@@ -59,6 +60,9 @@ export default function CreatePortfolioPage() {
       onSubmit={handleSubmit}
       isLoading={isLoading}
       publishLabel="ポートフォリオを投稿する"
+      restoreMessage={restoreMessage}
+      onDiscardRestoredEdit={discardUnsavedEdit}
+      backupFailed={backupFailed}
       extraFields={
         <div className="mb-4">
           <label className="mb-2 block text-sm font-bold text-gray-700">

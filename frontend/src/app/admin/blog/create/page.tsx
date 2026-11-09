@@ -5,7 +5,6 @@ import { UnauthorizedError } from "@/app/types/errors";
 import { useAdminBlogCreate } from "@/app/hooks/admin/useAdminBlogCreate";
 import { useAdminTags } from "@/app/hooks/admin/useAdminTags";
 import { AdminDocForm } from "@/app/admin/components/AdminDocForm";
-import { saveBlogRestore } from "@/app/utils/adminBlogRestore";
 
 export default function CreateBlogPage() {
   const router = useRouter();
@@ -26,8 +25,8 @@ export default function CreateBlogPage() {
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, restoreMessage },
-    actions: { submitCreate },
+    state: { isLoading, restoreMessage, backupFailed },
+    actions: { submitCreate, discardUnsavedEdit },
   } = useAdminBlogCreate();
 
   const {
@@ -42,19 +41,6 @@ export default function CreateBlogPage() {
       router.push("/admin");
     } catch (error) {
       if (error instanceof UnauthorizedError) {
-        saveBlogRestore({
-          kind: "blog:create",
-          redirectPath: pathname,
-          savedAt: Date.now(),
-          payload: {
-            title,
-            description,
-            content,
-            tags,
-            date,
-            isDraft,
-          },
-        });
         router.push(`/admin/login?redirect=${encodeURIComponent(pathname)}`);
       } else {
         alert("Failed to create blog");
@@ -80,6 +66,8 @@ export default function CreateBlogPage() {
       isLoading={isLoading}
       publishLabel="ブログを投稿する"
       restoreMessage={restoreMessage}
+      onDiscardRestoredEdit={discardUnsavedEdit}
+      backupFailed={backupFailed}
       extraFields={
         <div className="mb-4">
           <label className="mb-2 block text-sm font-bold text-gray-700">

@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAdminLogin } from "@/app/hooks/admin/useAdminLogin";
-import { getSafeAdminRedirect } from "@/app/utils/adminBlogRestore";
+import { getSafeAdminRedirect } from "@/app/utils/adminRedirect";
 
 function LoginForm() {
   const router = useRouter();

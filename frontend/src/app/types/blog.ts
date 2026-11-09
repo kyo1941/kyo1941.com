@@ -24,3 +24,5 @@ export type BlogUpsertInput = {
   tags: string[];
   isDraft: boolean;
 };
+
+export type BlogFormValues = BlogUpsertInput;

@@ -23,3 +23,5 @@ export type PortfolioUpsertInput = {
   coverImage?: string;
   isDraft: boolean;
 };
+
+export type PortfolioFormValues = Required<PortfolioUpsertInput>;

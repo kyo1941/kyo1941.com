@@ -5,7 +5,6 @@ import { UnauthorizedError } from "@/app/types/errors";
 import { useAdminBlogEdit } from "@/app/hooks/admin/useAdminBlogEdit";
 import { useAdminTags } from "@/app/hooks/admin/useAdminTags";
 import { AdminDocForm } from "@/app/admin/components/AdminDocForm";
-import { saveBlogRestore } from "@/app/utils/adminBlogRestore";
 
 export default function EditBlogPage() {
   const router = useRouter();
@@ -30,8 +29,8 @@ export default function EditBlogPage() {
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, restoreMessage },
-    actions: { submitUpdate },
+    state: { isLoading, restoreMessage, backupFailed, hasConflictingEdit },
+    actions: { submitUpdate, restoreConflictingEdit, discardUnsavedEdit },
   } = useAdminBlogEdit(originalSlug, { onUnauthorized: handleUnauthorized });
 
   const {
@@ -46,20 +45,6 @@ export default function EditBlogPage() {
       router.push("/admin");
     } catch (error) {
       if (error instanceof UnauthorizedError) {
-        saveBlogRestore({
-          kind: "blog:edit",
-          slug: originalSlug,
-          redirectPath: pathname,
-          savedAt: Date.now(),
-          payload: {
-            title,
-            description,
-            content,
-            tags,
-            date,
-            isDraft,
-          },
-        });
         router.push(`/admin/login?redirect=${encodeURIComponent(pathname)}`);
       } else {
         alert("Failed to update blog");
@@ -85,6 +70,13 @@ export default function EditBlogPage() {
       isLoading={isLoading}
       publishLabel="ブログを更新する"
       restoreMessage={restoreMessage}
+      onDiscardRestoredEdit={discardUnsavedEdit}
+      backupFailed={backupFailed}
+      conflictingEdit={
+        hasConflictingEdit
+          ? { onRestore: restoreConflictingEdit, onDiscard: discardUnsavedEdit }
+          : undefined
+      }
       extraFields={
         <div className="mb-4">
           <label className="mb-2 block text-sm font-bold text-gray-700">

@@ -29,7 +29,14 @@ export default function EditBlogPage() {
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, restoreMessage, backupFailed, hasConflictingEdit },
+    state: {
+      isLoading,
+      restoreMessage,
+      restoredChanges,
+      backupFailed,
+      hasConflictingEdit,
+      conflictingChanges,
+    },
     actions: { submitUpdate, restoreConflictingEdit, discardUnsavedEdit },
   } = useAdminBlogEdit(originalSlug, { onUnauthorized: handleUnauthorized });
 
@@ -70,11 +77,16 @@ export default function EditBlogPage() {
       isLoading={isLoading}
       publishLabel="ブログを更新する"
       restoreMessage={restoreMessage}
+      restoredChanges={restoredChanges}
       onDiscardRestoredEdit={discardUnsavedEdit}
       backupFailed={backupFailed}
       conflictingEdit={
         hasConflictingEdit
-          ? { onRestore: restoreConflictingEdit, onDiscard: discardUnsavedEdit }
+          ? {
+              changes: conflictingChanges,
+              onRestore: restoreConflictingEdit,
+              onDiscard: discardUnsavedEdit,
+            }
           : undefined
       }
       extraFields={

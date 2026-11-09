@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useUnsavedEditBackup } from "@/app/hooks/admin/useUnsavedEditBackup";
+import { listEditChanges } from "@/app/utils/adminEditChanges";
 import { isSameEdit, readUnsavedEdit } from "@/app/utils/adminUnsavedEdit";
 
 const RESTORE_MESSAGE = "未保存の入力内容を復元しました";
@@ -11,7 +12,7 @@ type Options<T> = {
   hasServerCopy: boolean;
 };
 
-export function useUnsavedEditRestore<T>({
+export function useUnsavedEditRestore<T extends object>({
   docKey,
   formValues,
   applyFormValues,
@@ -24,6 +25,22 @@ export function useUnsavedEditRestore<T>({
   const { backupFailed, beginBackup, discardBackup } = useUnsavedEditBackup(
     docKey,
     formValues,
+  );
+
+  const deferredFormValues = useDeferredValue(formValues);
+  const restoredChanges = useMemo(
+    () =>
+      restoreMessage && baseValues
+        ? listEditChanges(baseValues, deferredFormValues)
+        : [],
+    [restoreMessage, baseValues, deferredFormValues],
+  );
+  const conflictingChanges = useMemo(
+    () =>
+      conflictingValues && baseValues
+        ? listEditChanges(baseValues, conflictingValues)
+        : [],
+    [conflictingValues, baseValues],
   );
 
   const applyUnsavedEdit = useCallback(
@@ -70,8 +87,10 @@ export function useUnsavedEditRestore<T>({
 
   return {
     restoreMessage,
+    restoredChanges,
     backupFailed,
     hasConflictingEdit: conflictingValues !== null,
+    conflictingChanges,
     loadBaseValues,
     restoreConflictingEdit,
     discardUnsavedEdit,

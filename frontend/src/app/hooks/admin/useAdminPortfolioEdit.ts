@@ -53,8 +53,10 @@ export function useAdminPortfolioEdit(
 
   const {
     restoreMessage,
+    restoredChanges,
     backupFailed,
     hasConflictingEdit,
+    conflictingChanges,
     loadBaseValues,
     restoreConflictingEdit,
     discardUnsavedEdit,
@@ -150,8 +152,10 @@ export function useAdminPortfolioEdit(
       isLoading,
       error,
       restoreMessage,
+      restoredChanges,
       backupFailed,
       hasConflictingEdit,
+      conflictingChanges,
     },
     actions: { submitUpdate, restoreConflictingEdit, discardUnsavedEdit },
   };

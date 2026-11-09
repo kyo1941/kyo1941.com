@@ -46,6 +46,7 @@ export function useAdminPortfolioCreate() {
 
   const {
     restoreMessage,
+    restoredChanges,
     backupFailed,
     loadBaseValues,
     discardUnsavedEdit,
@@ -100,7 +101,13 @@ export function useAdminPortfolioCreate() {
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, error, restoreMessage, backupFailed },
+    state: {
+      isLoading,
+      error,
+      restoreMessage,
+      restoredChanges,
+      backupFailed,
+    },
     actions: { submitCreate, discardUnsavedEdit },
   };
 }

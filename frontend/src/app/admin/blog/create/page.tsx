@@ -25,7 +25,7 @@ export default function CreateBlogPage() {
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, restoreMessage, backupFailed },
+    state: { isLoading, restoreMessage, restoredChanges, backupFailed },
     actions: { submitCreate, discardUnsavedEdit },
   } = useAdminBlogCreate();
 
@@ -66,6 +66,7 @@ export default function CreateBlogPage() {
       isLoading={isLoading}
       publishLabel="ブログを投稿する"
       restoreMessage={restoreMessage}
+      restoredChanges={restoredChanges}
       onDiscardRestoredEdit={discardUnsavedEdit}
       backupFailed={backupFailed}
       extraFields={

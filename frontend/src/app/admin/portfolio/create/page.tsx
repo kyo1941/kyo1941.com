@@ -24,7 +24,7 @@ export default function CreatePortfolioPage() {
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, restoreMessage, backupFailed },
+    state: { isLoading, restoreMessage, restoredChanges, backupFailed },
     actions: { submitCreate, discardUnsavedEdit },
   } = useAdminPortfolioCreate();
 
@@ -61,6 +61,7 @@ export default function CreatePortfolioPage() {
       isLoading={isLoading}
       publishLabel="ポートフォリオを投稿する"
       restoreMessage={restoreMessage}
+      restoredChanges={restoredChanges}
       onDiscardRestoredEdit={discardUnsavedEdit}
       backupFailed={backupFailed}
       extraFields={

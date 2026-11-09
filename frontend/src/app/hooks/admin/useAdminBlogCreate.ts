@@ -43,6 +43,7 @@ export function useAdminBlogCreate() {
 
   const {
     restoreMessage,
+    restoredChanges,
     backupFailed,
     loadBaseValues,
     discardUnsavedEdit,
@@ -103,7 +104,13 @@ export function useAdminBlogCreate() {
       isDraft,
       setIsDraft,
     },
-    state: { isLoading, error, restoreMessage, backupFailed },
+    state: {
+      isLoading,
+      error,
+      restoreMessage,
+      restoredChanges,
+      backupFailed,
+    },
     actions: { submitCreate, discardUnsavedEdit },
   };
 }

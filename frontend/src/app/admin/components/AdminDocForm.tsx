@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { useRef, useLayoutEffect } from "react";
 import { AdminMarkdownPreview } from "./AdminMarkdownPreview";
+import { AdminEditChanges } from "./AdminEditChanges";
+import type { EditChange } from "@/app/utils/adminEditChanges";
 import { useCommittedPreview } from "@/app/hooks/admin/useCommittedPreview";
 import { useMarkdownListEditor } from "@/app/hooks/admin/useMarkdownListEditor";
 
@@ -22,9 +24,14 @@ type AdminDocFormProps = {
   isLoading: boolean;
   publishLabel: string;
   restoreMessage?: string;
+  restoredChanges?: EditChange[];
   onDiscardRestoredEdit?: () => void;
   backupFailed?: boolean;
-  conflictingEdit?: { onRestore: () => void; onDiscard: () => void };
+  conflictingEdit?: {
+    changes: EditChange[];
+    onRestore: () => void;
+    onDiscard: () => void;
+  };
   extraFields?: ReactNode;
 };
 
@@ -44,6 +51,7 @@ export function AdminDocForm({
   isLoading,
   publishLabel,
   restoreMessage,
+  restoredChanges = [],
   onDiscardRestoredEdit,
   backupFailed,
   conflictingEdit,
@@ -74,10 +82,14 @@ export function AdminDocForm({
       <div className="container mx-auto p-8">
         <h1 className="mb-6 text-3xl font-bold">{heading}</h1>
         <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-          <p className="mb-3">
+          <p>
             未保存の入力内容がありますが、その後サーバー側の内容が更新されています。
           </p>
-          <div className="flex flex-wrap gap-2">
+          <AdminEditChanges
+            changes={conflictingEdit.changes}
+            heading="復元するとサーバーの内容から変わる項目"
+          />
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               className="rounded border border-current px-3 py-1 font-bold"
@@ -102,17 +114,23 @@ export function AdminDocForm({
     <div className="container mx-auto p-8">
       <h1 className="mb-6 text-3xl font-bold">{heading}</h1>
       {restoreMessage && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-800 dark:bg-green-950/60 dark:text-green-300">
-          <p>{restoreMessage}</p>
-          {onDiscardRestoredEdit && (
-            <button
-              type="button"
-              className="rounded border border-current px-3 py-1"
-              onClick={onDiscardRestoredEdit}
-            >
-              破棄する
-            </button>
-          )}
+        <div className="mb-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-800 dark:bg-green-950/60 dark:text-green-300">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p>{restoreMessage}</p>
+            {onDiscardRestoredEdit && (
+              <button
+                type="button"
+                className="rounded border border-current px-3 py-1"
+                onClick={onDiscardRestoredEdit}
+              >
+                破棄する
+              </button>
+            )}
+          </div>
+          <AdminEditChanges
+            changes={restoredChanges}
+            heading="破棄すると元に戻る項目"
+          />
         </div>
       )}
       {backupFailed && (

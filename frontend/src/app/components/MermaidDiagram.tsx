@@ -23,12 +23,12 @@ export function MermaidDiagram({ source }: Props) {
     if (!theme) return;
     let cancelled = false;
     (async () => {
-      const { default: mermaid } = await import("mermaid");
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: theme === "dark" ? "dark" : "default",
-      });
       try {
+        const { default: mermaid } = await import("mermaid");
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: theme === "dark" ? "dark" : "default",
+        });
         // 書きかけの記法を render に渡すとエラー表示の図が body に残るため、先に検証して弾く
         const valid = await mermaid.parse(source, { suppressErrors: true });
         if (!valid) {

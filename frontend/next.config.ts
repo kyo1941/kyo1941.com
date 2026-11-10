@@ -13,6 +13,7 @@ const remotePattern: RemotePattern = {
 };
 
 const nextConfig: NextConfig = {
+  agentRules: false,
   output: process.env.BUILD_STANDALONE === "true" ? "standalone" : undefined,
   images: {
     remotePatterns: [

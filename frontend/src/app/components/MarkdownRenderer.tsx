@@ -11,11 +11,25 @@ import {
 } from "@/app/utils/preprocessToggles";
 import { LinkPreviewCard } from "@/app/components/LinkPreviewCard";
 import { CodeBlock } from "@/app/components/CodeBlock";
+import { MermaidDiagram } from "@/app/components/MermaidDiagram";
 
 type Props = {
   content: string;
   ogpData?: Record<string, OgpData>;
 };
+
+function textOf(node: React.ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map(textOf).join("");
+  }
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return textOf(node.props.children);
+  }
+  return "";
+}
 
 function MarkdownContent({
   content,
@@ -37,6 +51,9 @@ function MarkdownContent({
           ) as React.ReactElement<{ className?: string }> | undefined;
           const language =
             codeElement?.props.className?.match(/language-(\S+)/)?.[1];
+          if (language?.toLowerCase() === "mermaid") {
+            return <MermaidDiagram source={textOf(children)} />;
+          }
           return <CodeBlock language={language}>{children}</CodeBlock>;
         },
         p({ children, ...props }) {

@@ -32,10 +32,15 @@ function remember(key: string, diagram: Diagram) {
 
 export function MermaidDiagram({ source }: Props) {
   const theme = useDisplayedTheme();
-  // 記法を書き換えている間は、新しい図ができるまで直前の図を出しておく
-  const [latest, setLatest] = useState<Diagram>();
-  const diagram =
-    (theme && recentDiagrams.get(diagramKey(theme, source))) ?? latest;
+  // 記法を書き換えている間は、新しい図ができるまで最後に出した図を出しておく
+  const [lastShown, setLastShown] = useState<Diagram>();
+  const remembered = theme
+    ? recentDiagrams.get(diagramKey(theme, source))
+    : undefined;
+  if (remembered && remembered !== lastShown) {
+    setLastShown(remembered);
+  }
+  const diagram = remembered ?? lastShown;
 
   useEffect(() => {
     if (!theme) return;
@@ -43,7 +48,7 @@ export function MermaidDiagram({ source }: Props) {
     if (recentDiagrams.has(key)) return;
     let cancelled = false;
     const settle = (result: Diagram) => {
-      if (!cancelled) setLatest(result);
+      if (!cancelled) setLastShown(result);
     };
     (async () => {
       try {
@@ -55,14 +60,16 @@ export function MermaidDiagram({ source }: Props) {
         // 書きかけの記法を render に渡すとエラー表示の図が body に残るため、先に検証して弾く
         const valid = await mermaid.parse(source, { suppressErrors: true });
         if (!valid) {
-          remember(key, { status: "invalid" });
-          settle({ status: "invalid" });
+          const invalid: Diagram = { status: "invalid" };
+          remember(key, invalid);
+          settle(invalid);
           return;
         }
         // mermaid は描き始めに同じ id の要素を消すため、表示中の図を残したまま描けるよう毎回別の id にする
         const { svg } = await mermaid.render(`mermaid-${++drawCount}`, source);
-        remember(key, { status: "drawn", svg });
-        settle({ status: "drawn", svg });
+        const drawn: Diagram = { status: "drawn", svg };
+        remember(key, drawn);
+        settle(drawn);
       } catch {
         // 読み込みの失敗は一時的なことがあるため、覚えずに次の機会に描き直させる
         settle({ status: "invalid" });

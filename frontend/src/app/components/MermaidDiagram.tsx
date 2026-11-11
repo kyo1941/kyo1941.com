@@ -40,7 +40,6 @@ export function MermaidDiagram({ source }: Props) {
   if (remembered && remembered !== lastShown) {
     setLastShown(remembered);
   }
-  const diagram = remembered ?? lastShown;
 
   useEffect(() => {
     if (!theme) return;
@@ -80,7 +79,7 @@ export function MermaidDiagram({ source }: Props) {
     };
   }, [source, theme]);
 
-  if (diagram?.status === "invalid") {
+  if (lastShown?.status === "invalid") {
     return (
       <CodeBlock language="mermaid">
         <code>{source}</code>
@@ -88,14 +87,14 @@ export function MermaidDiagram({ source }: Props) {
     );
   }
 
-  if (!diagram) {
+  if (!lastShown) {
     return <div className="my-4 min-h-24" aria-busy="true" />;
   }
 
   return (
     <div
       className="my-4 flex justify-center overflow-x-auto"
-      dangerouslySetInnerHTML={{ __html: diagram.svg }}
+      dangerouslySetInnerHTML={{ __html: lastShown.svg }}
     />
   );
 }

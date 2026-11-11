@@ -47,7 +47,8 @@ const components: Components = {
     }
     return <CodeBlock language={language}>{children}</CodeBlock>;
   },
-  p({ children, ...props }) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  p({ children, node, ...props }) {
     const ogp = linkPreviewOgp(props);
     if (ogp) {
       return <LinkPreviewCard data={ogp} />;

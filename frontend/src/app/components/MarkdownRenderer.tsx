@@ -1,10 +1,13 @@
 import React from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import type { OgpData } from "@/app/types/ogp";
-import { remarkLinkPreview } from "@/app/utils/remarkLinkPreview";
+import {
+  linkPreviewOgp,
+  remarkLinkPreview,
+} from "@/app/utils/remarkLinkPreview";
 import {
   parseToggleSegments,
   type ToggleNode,
@@ -31,6 +34,29 @@ function textOf(node: React.ReactNode): string {
   return "";
 }
 
+const components: Components = {
+  pre({ children }) {
+    const codeElement = React.Children.toArray(children).find(
+      (child) =>
+        React.isValidElement(child) &&
+        (child as React.ReactElement).type === "code",
+    ) as React.ReactElement<{ className?: string }> | undefined;
+    const language = codeElement?.props.className?.match(/language-(\S+)/)?.[1];
+    if (language?.toLowerCase() === "mermaid") {
+      return <MermaidDiagram source={textOf(children)} />;
+    }
+    return <CodeBlock language={language}>{children}</CodeBlock>;
+  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  p({ children, node, ...props }) {
+    const ogp = linkPreviewOgp(props);
+    if (ogp) {
+      return <LinkPreviewCard data={ogp} />;
+    }
+    return <p {...props}>{children}</p>;
+  },
+};
+
 function MarkdownContent({
   content,
   ogpData,
@@ -40,37 +66,9 @@ function MarkdownContent({
 }) {
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm, remarkLinkPreview]}
+      remarkPlugins={[remarkGfm, [remarkLinkPreview, { ogpData }]]}
       rehypePlugins={[rehypeHighlight, rehypeRaw]}
-      components={{
-        pre({ children }) {
-          const codeElement = React.Children.toArray(children).find(
-            (child) =>
-              React.isValidElement(child) &&
-              (child as React.ReactElement).type === "code",
-          ) as React.ReactElement<{ className?: string }> | undefined;
-          const language =
-            codeElement?.props.className?.match(/language-(\S+)/)?.[1];
-          if (language?.toLowerCase() === "mermaid") {
-            return <MermaidDiagram source={textOf(children)} />;
-          }
-          return <CodeBlock language={language}>{children}</CodeBlock>;
-        },
-        p({ children, ...props }) {
-          const previewUrl = (props as Record<string, unknown>)[
-            "data-link-preview"
-          ] as string | undefined;
-
-          if (previewUrl) {
-            const data = ogpData[previewUrl];
-            if (data) {
-              return <LinkPreviewCard data={data} />;
-            }
-          }
-
-          return <p {...props}>{children}</p>;
-        },
-      }}
+      components={components}
     >
       {content}
     </ReactMarkdown>

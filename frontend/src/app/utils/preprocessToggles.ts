@@ -1,7 +1,12 @@
-export type MarkdownSegment = { type: "markdown"; content: string };
+export type MarkdownSegment = {
+  type: "markdown";
+  content: string;
+  firstLine: number;
+};
 export type ToggleSegment = {
   type: "toggle";
   title: string;
+  titleLine: number;
   children: ToggleNode[];
 };
 export type ToggleNode = MarkdownSegment | ToggleSegment;
@@ -16,10 +21,15 @@ function detectBodyIndent(lines: string[], startIndex: number): number {
   return -1;
 }
 
-function parseLines(lines: string[], baseIndent: number): ToggleNode[] {
+function parseLines(
+  lines: string[],
+  baseIndent: number,
+  firstLine: number,
+): ToggleNode[] {
   const segments: ToggleNode[] = [];
   let i = 0;
   let markdownLines: string[] = [];
+  let markdownFirstLine = firstLine;
 
   while (i < lines.length) {
     const line = lines[i];
@@ -27,12 +37,18 @@ function parseLines(lines: string[], baseIndent: number): ToggleNode[] {
 
     if (match && match[1].length === baseIndent) {
       if (markdownLines.length > 0) {
-        segments.push({ type: "markdown", content: markdownLines.join("\n") });
+        segments.push({
+          type: "markdown",
+          content: markdownLines.join("\n"),
+          firstLine: markdownFirstLine,
+        });
         markdownLines = [];
       }
 
       const title = match[2];
+      const titleLine = firstLine + i;
       i++;
+      const bodyFirstLine = firstLine + i;
 
       const bodyIndent = detectBodyIndent(lines, i);
       const bodyLines: string[] = [];
@@ -52,21 +68,27 @@ function parseLines(lines: string[], baseIndent: number): ToggleNode[] {
       segments.push({
         type: "toggle",
         title,
-        children: parseLines(bodyLines, 0),
+        titleLine,
+        children: parseLines(bodyLines, 0, bodyFirstLine),
       });
     } else {
+      if (markdownLines.length === 0) markdownFirstLine = firstLine + i;
       markdownLines.push(line);
       i++;
     }
   }
 
   if (markdownLines.length > 0) {
-    segments.push({ type: "markdown", content: markdownLines.join("\n") });
+    segments.push({
+      type: "markdown",
+      content: markdownLines.join("\n"),
+      firstLine: markdownFirstLine,
+    });
   }
 
   return segments;
 }
 
 export function parseToggleSegments(markdown: string): ToggleNode[] {
-  return parseLines(markdown.split("\n"), 0);
+  return parseLines(markdown.split("\n"), 0, 1);
 }

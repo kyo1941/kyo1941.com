@@ -7,6 +7,7 @@ import { AdminEditChanges } from "./AdminEditChanges";
 import type { EditChange } from "@/app/utils/adminEditChanges";
 import { useCommittedPreview } from "@/app/hooks/admin/useCommittedPreview";
 import { useMarkdownListEditor } from "@/app/hooks/admin/useMarkdownListEditor";
+import { caretTop, lineStartOffset } from "@/app/utils/textareaPosition";
 
 type AdminDocFormProps = {
   heading: string;
@@ -74,6 +75,17 @@ export function AdminDocForm({
     el.style.height = `${el.scrollHeight}px`;
     window.scrollTo(0, scrollY);
   }, [content, isResolvingConflict]);
+
+  const showSourceLine = (line: number) => {
+    const el = contentRef.current;
+    if (!el) return;
+    const offset = lineStartOffset(el.value, line);
+    el.focus({ preventScroll: true });
+    el.setSelectionRange(offset, offset);
+    const lineTop =
+      el.getBoundingClientRect().top + window.scrollY + caretTop(el, offset);
+    window.scrollTo({ top: lineTop - window.innerHeight / 3 });
+  };
 
   const buttonLabel = isDraft ? "下書きを保存する" : publishLabel;
 
@@ -216,7 +228,10 @@ export function AdminDocForm({
             </button>
           </fieldset>
         </form>
-        <AdminMarkdownPreview content={previewContent} />
+        <AdminMarkdownPreview
+          content={previewContent}
+          onSourceLineSelect={showSourceLine}
+        />
       </div>
     </div>
   );

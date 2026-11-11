@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDisplayedTheme } from "@/app/hooks/useDisplayedTheme";
 import { CodeBlock } from "@/app/components/CodeBlock";
 import type { Theme } from "@/app/utils/chosenTheme";
@@ -14,6 +14,8 @@ type Diagram = { status: "drawn"; svg: string } | { status: "invalid" };
 // 編集中はトグルの増減などで図が作り直されることがあり、そのたびに描き直すと描画が終わるまで図が消えるため、最近の結果を覚えて即座に出す。
 const recentDiagrams = new Map<string, Diagram>();
 const RECENT_DIAGRAM_LIMIT = 50;
+
+let drawCount = 0;
 
 function diagramKey(theme: Theme, source: string) {
   return `${theme}\n${source}`;
@@ -29,8 +31,6 @@ function remember(key: string, diagram: Diagram) {
 }
 
 export function MermaidDiagram({ source }: Props) {
-  // mermaid はこの id を図のスタイルの CSS セレクタにも使うため、セレクタで使えない文字を落とす
-  const id = `mermaid-${useId().replace(/[^\w-]/g, "")}`;
   const theme = useDisplayedTheme();
   // 記法を書き換えている間は、新しい図ができるまで直前の図を出しておく
   const [latest, setLatest] = useState<Diagram>();
@@ -59,7 +59,8 @@ export function MermaidDiagram({ source }: Props) {
           settle({ status: "invalid" });
           return;
         }
-        const { svg } = await mermaid.render(id, source);
+        // mermaid は描き始めに同じ id の要素を消すため、表示中の図を残したまま描けるよう毎回別の id にする
+        const { svg } = await mermaid.render(`mermaid-${++drawCount}`, source);
         remember(key, { status: "drawn", svg });
         settle({ status: "drawn", svg });
       } catch {
@@ -70,7 +71,7 @@ export function MermaidDiagram({ source }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [id, source, theme]);
+  }, [source, theme]);
 
   if (diagram?.status === "invalid") {
     return (

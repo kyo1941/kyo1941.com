@@ -16,6 +16,13 @@ export function AdminMarkdownPreview({
   const hasContent = content.trim().length > 0;
   const ogpData = useOgpData(content);
 
+  // ダブルクリックで本文の行へ移るとき、1回目のクリックでリンク先へ移動してしまわないよう、プレビューではリンクを開かない
+  const handleClick = (e: React.MouseEvent) => {
+    if (e.target instanceof Element && e.target.closest("a")) {
+      e.preventDefault();
+    }
+  };
+
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (!(e.target instanceof Element)) return;
     const block = e.target.closest(`[${SOURCE_LINE_ATTRIBUTE}]`);
@@ -32,6 +39,7 @@ export function AdminMarkdownPreview({
       <aside className="self-start rounded border bg-surface p-6 shadow lg:sticky lg:top-8 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
         <div
           className="prose max-w-none dark:prose-invert"
+          onClick={handleClick}
           onDoubleClick={handleDoubleClick}
         >
           {hasContent ? (

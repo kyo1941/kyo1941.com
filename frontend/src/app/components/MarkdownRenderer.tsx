@@ -13,6 +13,7 @@ import {
   type ToggleNode,
 } from "@/app/utils/preprocessToggles";
 import { rehypeSourceLine, sourceLineOf } from "@/app/utils/rehypeSourceLine";
+import { remarkArticleHtml } from "@/app/utils/remarkArticleHtml";
 import { LinkPreviewCard } from "@/app/components/LinkPreviewCard";
 import { CodeBlock } from "@/app/components/CodeBlock";
 import { MermaidDiagram } from "@/app/components/MermaidDiagram";
@@ -100,7 +101,11 @@ function MarkdownContent({
 }) {
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm, [remarkLinkPreview, { ogpData }]]}
+      remarkPlugins={[
+        remarkGfm,
+        remarkArticleHtml,
+        [remarkLinkPreview, { ogpData }],
+      ]}
       rehypePlugins={
         markSourceLines
           ? [rehypeHighlight, rehypeRaw, [rehypeSourceLine, { firstLine }]]

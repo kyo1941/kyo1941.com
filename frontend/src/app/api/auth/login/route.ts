@@ -5,6 +5,8 @@ const API_BASE_URL =
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
+const SESSION_DURATION_SECONDS = 24 * 60 * 60;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
       secure: IS_PRODUCTION,
       sameSite: "strict",
       path: "/",
-      maxAge: 3600,
+      maxAge: SESSION_DURATION_SECONDS,
     });
 
     return response;

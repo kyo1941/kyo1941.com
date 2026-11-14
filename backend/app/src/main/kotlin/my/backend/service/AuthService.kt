@@ -6,7 +6,10 @@ import io.ktor.server.config.*
 import my.backend.repository.UserRepository
 import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
+import java.time.Duration
 import java.util.*
+
+private val SESSION_DURATION = Duration.ofHours(24)
 
 class AuthService(
     private val userRepository: UserRepository,
@@ -36,7 +39,7 @@ class AuthService(
             .withAudience(audience)
             .withIssuer(issuer)
             .withClaim("username", username)
-            .withExpiresAt(Date(System.currentTimeMillis() + 60 * 60 * 1000))
+            .withExpiresAt(Date(System.currentTimeMillis() + SESSION_DURATION.toMillis()))
             .sign(Algorithm.HMAC256(secret))
     }
 }

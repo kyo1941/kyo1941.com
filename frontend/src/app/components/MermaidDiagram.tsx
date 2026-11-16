@@ -10,7 +10,9 @@ type Props = {
   enlargeable?: boolean;
 };
 
-type Diagram = { status: "drawn"; svg: string } | { status: "invalid" };
+type Diagram =
+  | { status: "drawn"; svg: string; id: string }
+  | { status: "invalid" };
 
 // 編集中はトグルの増減などで図が作り直されることがあり、そのたびに描き直すと描画が終わるまで図が消えるため、最近の結果を覚えて即座に出す。
 const recentDiagrams = new Map<string, Diagram>();
@@ -20,6 +22,21 @@ let drawCount = 0;
 
 function diagramKey(theme: Theme, source: string) {
   return `${theme}\n${source}`;
+}
+
+// mermaid は図の中の id をすべて描画時の id から作るため、拡大用に並べる図ではその部分を差し替えて、記事の中の図と id が重ならないようにする
+function enlargedSvg(svg: string, id: string) {
+  return svg.replace(new RegExp(`${id}(?![0-9])`, "g"), `${id}-enlarged`);
+}
+
+// 画面幅いっぱいに広げると、細長い図は何倍にもなって読み進めるのに大きすぎるため、文字が読みやすくなる程度で止める
+const ENLARGED_SCALE_LIMIT = 2;
+
+function enlargedWidthLimit(svg: string) {
+  const width = Number(
+    svg.match(/viewBox="[^"\s]+\s+[^"\s]+\s+([^"\s]+)/)?.[1],
+  );
+  return Number.isFinite(width) ? width * ENLARGED_SCALE_LIMIT : undefined;
 }
 
 function remember(key: string, diagram: Diagram) {
@@ -68,8 +85,9 @@ export function MermaidDiagram({ source, enlargeable = false }: Props) {
           return;
         }
         // mermaid は描き始めに同じ id の要素を消すため、表示中の図を残したまま描けるよう毎回別の id にする
-        const { svg } = await mermaid.render(`mermaid-${++drawCount}`, source);
-        const drawn: Diagram = { status: "drawn", svg };
+        const id = `mermaid-${++drawCount}`;
+        const { svg } = await mermaid.render(id, source);
+        const drawn: Diagram = { status: "drawn", svg, id };
         remember(key, drawn);
         settle(drawn);
       } catch {
@@ -123,15 +141,17 @@ export function MermaidDiagram({ source, enlargeable = false }: Props) {
       <dialog
         ref={enlargedView}
         aria-label="拡大した図"
-        className="m-auto max-h-none max-w-none cursor-zoom-out rounded bg-surface p-4 backdrop:bg-black/70"
+        className="m-auto max-h-[90vh] w-[92vw] max-w-none cursor-zoom-out overflow-y-auto rounded bg-surface p-4 backdrop:bg-black/70"
         onClick={() => enlargedView.current?.close()}
         onClose={() => setEnlarged(false)}
       >
-        {/* 同じ図を常に2つ置くと図の中の id が重複するため、開いている間だけ置く */}
         {enlarged && (
           <span
-            className="block [&_svg]:h-auto [&_svg]:max-h-[85vh] [&_svg]:w-[90vw] [&_svg]:!max-w-none"
-            dangerouslySetInnerHTML={{ __html: lastShown.svg }}
+            className="mx-auto block [&_svg]:h-auto [&_svg]:w-full [&_svg]:!max-w-none"
+            style={{ maxWidth: enlargedWidthLimit(lastShown.svg) }}
+            dangerouslySetInnerHTML={{
+              __html: enlargedSvg(lastShown.svg, lastShown.id),
+            }}
           />
         )}
       </dialog>

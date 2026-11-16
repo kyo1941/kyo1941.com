@@ -14,6 +14,7 @@ type Heading = {
 };
 
 const HEADING_SELECTOR = "h1, h2, h3, h4";
+const NARROW_LIST_ID = "table-of-contents";
 const MIN_HEADINGS = 2;
 // 見出しへ移動したときに止まる位置まで見出しが上がってきたら、その見出しを読んでいるとみなす
 const READING_LINE_TOLERANCE = 8;
@@ -26,16 +27,23 @@ function headingId(text: string, used: Set<string>) {
   return id;
 }
 
+// 見出しの id がページの他の要素と重なると、id で探したときに見出しではなくその要素が見つかるため、ページにある id と目次自身が後から置く id を使用済みにしておく
 function giveHeadingIds(articleBody: HTMLElement): Heading[] {
-  const used = new Set<string>();
-  return [...articleBody.querySelectorAll<HTMLElement>(HEADING_SELECTOR)].map(
-    (element) => {
-      const text = element.textContent ?? "";
-      element.id ||= headingId(text, used);
-      used.add(element.id);
-      return { id: element.id, text, level: Number(element.tagName[1]) };
-    },
+  const headings = [
+    ...articleBody.querySelectorAll<HTMLElement>(HEADING_SELECTOR),
+  ];
+  const used = new Set(
+    [...document.querySelectorAll("[id]")]
+      .filter((element) => !headings.includes(element as HTMLElement))
+      .map((element) => element.id),
   );
+  used.add(NARROW_LIST_ID);
+  return headings.map((element) => {
+    const text = element.textContent ?? "";
+    element.id ||= headingId(text, used);
+    used.add(element.id);
+    return { id: element.id, text, level: Number(element.tagName[1]) };
+  });
 }
 
 // 閉じたトグルの中の見出しは表示されていないため、開いてから移動する
@@ -161,7 +169,7 @@ export function TableOfContents({ articleBodyId }: Props) {
       </nav>
       <button
         type="button"
-        popoverTarget="table-of-contents"
+        popoverTarget={NARROW_LIST_ID}
         className="fixed top-[calc(var(--header-height)+var(--content-top-gap))] right-4 z-20 flex h-(--narrow-button-height) items-center gap-1 rounded border border-gray-400/60 bg-surface/90 px-3 text-sm text-gray-900 shadow backdrop-blur lg:hidden"
       >
         <FiList aria-hidden="true" />
@@ -169,7 +177,7 @@ export function TableOfContents({ articleBodyId }: Props) {
       </button>
       <div
         ref={narrowList}
-        id="table-of-contents"
+        id={NARROW_LIST_ID}
         popover="auto"
         aria-label="目次"
         className="fixed inset-auto top-[calc(var(--header-height)+var(--content-top-gap)+var(--narrow-button-height)+0.5rem)] right-4 m-0 max-h-[60vh] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto p-5 shadow-lg backdrop-blur sky-surface"

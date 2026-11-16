@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { FiMenu, FiX } from "react-icons/fi";
 import { ROUTES } from "@/app/routes";
 import ThemeToggle from "./ThemeToggle";
+import { MAIN_CONTENT_ID } from "@/app/utils/pageIds";
 
 const baseNavLink = `
   relative
@@ -54,7 +55,7 @@ export default function Header() {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
 
     // Disable interactions on main content when drawer is open
-    const mainContent = document.getElementById("main-content");
+    const mainContent = document.getElementById(MAIN_CONTENT_ID);
     if (mainContent) {
       if (isOpen) {
         mainContent.style.pointerEvents = "none";

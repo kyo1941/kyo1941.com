@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Header from "./header";
+import { MAIN_CONTENT_ID } from "@/app/utils/pageIds";
 
 /**
  * 公開ページ共通の枠。
@@ -17,7 +18,7 @@ export default function PageShell({
   // 補助の列と並べたとき、幅を中身に合わせると本文の中の折り返せない長い要素（リンクのカードやコードなど）に引っ張られて補助の列に重なるため、列の幅に合わせる
   const main = (
     <main
-      id="main-content"
+      id={MAIN_CONTENT_ID}
       className="w-full max-w-4xl mx-auto px-4 pt-(--content-top-gap) pb-28 space-y-14 sm:space-y-24"
     >
       {children}

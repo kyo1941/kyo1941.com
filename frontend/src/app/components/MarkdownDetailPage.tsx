@@ -2,7 +2,11 @@ import PageShell from "@/app/components/PageShell";
 import BackButton from "@/app/components/BackButton";
 import { MarkdownRenderer } from "@/app/components/MarkdownRenderer";
 import { TableOfContents } from "@/app/components/TableOfContents";
-import { hasTableOfContents } from "@/app/utils/tableOfContents";
+import {
+  articleOutline,
+  TABLE_OF_CONTENTS_MIN_HEADINGS,
+} from "@/app/utils/articleOutline";
+import { MAIN_CONTENT_ID } from "@/app/utils/pageIds";
 import type { OgpData } from "@/app/types/ogp";
 
 type MarkdownDetailData = {
@@ -10,8 +14,6 @@ type MarkdownDetailData = {
   date: string;
   content: string;
 };
-
-const ARTICLE_BODY_ID = "article-body";
 
 type MarkdownDetailPageProps = {
   data: MarkdownDetailData | null;
@@ -44,11 +46,13 @@ export function MarkdownDetailPage({
     );
   }
 
+  const outline = articleOutline(data.content, [MAIN_CONTENT_ID]);
+
   return (
     <PageShell
       aside={
-        hasTableOfContents(data.content) ? (
-          <TableOfContents articleBodyId={ARTICLE_BODY_ID} />
+        outline.headings.length >= TABLE_OF_CONTENTS_MIN_HEADINGS ? (
+          <TableOfContents headings={outline.headings} />
         ) : undefined
       }
     >
@@ -64,11 +68,12 @@ export function MarkdownDetailPage({
         <div className="text-gray-600 mb-8">{data.date}</div>
 
         {/* 固定ヘッダーに見出しが隠れないよう、見出しへ移動したときはヘッダーの下で止める */}
-        <div
-          id={ARTICLE_BODY_ID}
-          className="prose prose-lg max-w-none dark:prose-invert [&_:is(h1,h2,h3,h4)]:scroll-mt-[calc(var(--header-height)+var(--content-top-gap))]"
-        >
-          <MarkdownRenderer content={data.content} ogpData={ogpData} />
+        <div className="prose prose-lg max-w-none dark:prose-invert [&_:is(h1,h2,h3,h4)]:scroll-mt-[calc(var(--header-height)+var(--content-top-gap))]">
+          <MarkdownRenderer
+            content={data.content}
+            ogpData={ogpData}
+            headingIdsBySegment={outline.headingIdsBySegment}
+          />
         </div>
       </article>
     </PageShell>

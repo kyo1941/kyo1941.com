@@ -12,7 +12,7 @@ type Props = {
 const MAX_SCALE = 10;
 const PIXELS_PER_LINE = 16;
 // マウスのホイールは1目盛りの量が大きく、トラックパッドのピンチは細かい量が連続して届くため、1回の量に上限を設けてどちらでも扱いやすい速さにする
-const WHEEL_ZOOM_RATE = 0.01;
+const WHEEL_ZOOM_RATE = 0.005;
 const WHEEL_ZOOM_DELTA_LIMIT = 50;
 const KEYBOARD_PAN_STEP = 80;
 const KEYBOARD_PAN_DIRECTIONS: Record<string, [number, number]> = {

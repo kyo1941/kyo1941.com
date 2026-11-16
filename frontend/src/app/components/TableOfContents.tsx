@@ -52,6 +52,15 @@ function showHeading(id: string, behavior: ScrollBehavior) {
   element.scrollIntoView({ behavior, block: "start" });
 }
 
+function linkedHeadingId() {
+  const fragment = location.hash.slice(1);
+  try {
+    return decodeURIComponent(fragment);
+  } catch {
+    return fragment;
+  }
+}
+
 function headingBeingRead(headings: Heading[], jumpedTo: string | undefined) {
   let current: string | undefined;
   for (const { id } of headings) {
@@ -85,25 +94,27 @@ export function TableOfContents({ articleBodyId }: Props) {
     const articleBody = document.getElementById(articleBodyId);
     if (!articleBody) return;
     const found = giveHeadingIds(articleBody);
-    let frame = requestAnimationFrame(() => {
+    const startFrame = requestAnimationFrame(() => {
       setHeadings(found);
       // 見出しの id は読み込み後に付けるため、URL で指定された見出しへはブラウザが移動できず、ここで移動させる
-      const linked = decodeURIComponent(location.hash.slice(1));
+      const linked = linkedHeadingId();
       if (linked) {
         jumpedTo.current = linked;
         showHeading(linked, "instant");
       }
       setReadingId(headingBeingRead(found, jumpedTo.current));
     });
+    let followFrame = 0;
     const follow = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() =>
+      cancelAnimationFrame(followFrame);
+      followFrame = requestAnimationFrame(() =>
         setReadingId(headingBeingRead(found, jumpedTo.current)),
       );
     };
     window.addEventListener("scroll", follow, { passive: true });
     return () => {
-      cancelAnimationFrame(frame);
+      cancelAnimationFrame(startFrame);
+      cancelAnimationFrame(followFrame);
       window.removeEventListener("scroll", follow);
     };
   }, [articleBodyId]);
@@ -116,7 +127,7 @@ export function TableOfContents({ articleBodyId }: Props) {
     narrowList.current?.hidePopover();
     jumpedTo.current = id;
     showHeading(id, "smooth");
-    history.replaceState(null, "", `#${id}`);
+    history.replaceState(null, "", `#${encodeURIComponent(id)}`);
   };
   const list = (
     <ul className="space-y-1 text-sm">
@@ -126,7 +137,7 @@ export function TableOfContents({ articleBodyId }: Props) {
           style={{ paddingLeft: `${(heading.level - topLevel) * 0.75}rem` }}
         >
           <a
-            href={`#${heading.id}`}
+            href={`#${encodeURIComponent(heading.id)}`}
             onClick={(event) => jump(event, heading.id)}
             aria-current={heading.id === readingId ? "location" : undefined}
             className="block py-0.5 text-gray-600 no-underline hover:text-link-color aria-[current]:font-semibold aria-[current]:text-link-color"

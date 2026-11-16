@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDisplayedTheme } from "@/app/hooks/useDisplayedTheme";
 import { CodeBlock } from "@/app/components/CodeBlock";
+import { EnlargedDiagram } from "@/app/components/EnlargedDiagram";
 import type { Theme } from "@/app/utils/chosenTheme";
 
 type Props = {
@@ -29,16 +30,6 @@ function enlargedSvg(svg: string, id: string) {
   return svg.replace(new RegExp(`${id}(?![0-9])`, "g"), `${id}-enlarged`);
 }
 
-// 画面幅いっぱいに広げると、細長い図は何倍にもなって読み進めるのに大きすぎるため、文字が読みやすくなる程度で止める
-const ENLARGED_SCALE_LIMIT = 2;
-
-function enlargedWidthLimit(svg: string) {
-  const width = Number(
-    svg.match(/viewBox="[^"\s]+\s+[^"\s]+\s+([^"\s]+)/)?.[1],
-  );
-  return Number.isFinite(width) ? width * ENLARGED_SCALE_LIMIT : undefined;
-}
-
 function remember(key: string, diagram: Diagram) {
   recentDiagrams.delete(key);
   recentDiagrams.set(key, diagram);
@@ -50,7 +41,6 @@ function remember(key: string, diagram: Diagram) {
 
 export function MermaidDiagram({ source, enlargeable = false }: Props) {
   const theme = useDisplayedTheme();
-  const enlargedView = useRef<HTMLDialogElement>(null);
   const [enlarged, setEnlarged] = useState(false);
   // 記法を書き換えている間は、新しい図ができるまで最後に出した図を出しておく
   const [lastShown, setLastShown] = useState<Diagram>();
@@ -100,10 +90,6 @@ export function MermaidDiagram({ source, enlargeable = false }: Props) {
     };
   }, [source, theme]);
 
-  useEffect(() => {
-    if (enlarged) enlargedView.current?.showModal();
-  }, [enlarged]);
-
   if (lastShown?.status === "invalid") {
     return (
       <CodeBlock language="mermaid">
@@ -138,23 +124,12 @@ export function MermaidDiagram({ source, enlargeable = false }: Props) {
           dangerouslySetInnerHTML={{ __html: lastShown.svg }}
         />
       </button>
-      <dialog
-        ref={enlargedView}
-        aria-label="拡大した図"
-        className="m-auto max-h-[90vh] w-[92vw] max-w-none cursor-zoom-out overflow-y-auto rounded bg-surface p-4 backdrop:bg-black/70"
-        onClick={() => enlargedView.current?.close()}
-        onClose={() => setEnlarged(false)}
-      >
-        {enlarged && (
-          <span
-            className="mx-auto block [&_svg]:h-auto [&_svg]:w-full [&_svg]:!max-w-none"
-            style={{ maxWidth: enlargedWidthLimit(lastShown.svg) }}
-            dangerouslySetInnerHTML={{
-              __html: enlargedSvg(lastShown.svg, lastShown.id),
-            }}
-          />
-        )}
-      </dialog>
+      {enlarged && (
+        <EnlargedDiagram
+          svg={enlargedSvg(lastShown.svg, lastShown.id)}
+          onClose={() => setEnlarged(false)}
+        />
+      )}
     </div>
   );
 }

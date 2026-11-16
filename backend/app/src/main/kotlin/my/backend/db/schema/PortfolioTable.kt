@@ -8,7 +8,7 @@ object PortfolioTable : Table("portfolios") {
     val slug = varchar("slug", 255).uniqueIndex()
     val title = varchar("title", 255)
     val description = text("description")
-    val content = text("content")
+    val content = mediumText("content")
     val coverImage = varchar("cover_image", 255).nullable()
     val date = datetime("date")
     val isDraft = bool("is_draft").default(false)

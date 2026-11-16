@@ -73,8 +73,8 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 w-full border-b border-surface/40 bg-surface/35 backdrop-blur-lg shadow-[0_4px_20px_-8px_rgba(30,64,120,0.25)] font-sans z-30">
-        <div className="max-w-4xl w-full mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="sticky top-0 h-(--header-height) w-full border-b border-surface/40 bg-surface/35 backdrop-blur-lg shadow-[0_4px_20px_-8px_rgba(30,64,120,0.25)] font-sans z-30">
+        <div className="max-w-4xl w-full h-full mx-auto px-4 flex items-center justify-between">
           <Link
             href={ROUTES.HOME}
             className="text-2xl font-bold text-gray-900 transition-opacity hover:opacity-70"

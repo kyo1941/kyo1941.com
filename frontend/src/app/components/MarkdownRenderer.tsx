@@ -52,41 +52,59 @@ function SourceLineBlock({
   );
 }
 
-const components: Components = {
-  pre({ children, ...props }) {
-    const line = sourceLineOf(props);
-    const codeElement = React.Children.toArray(children).find(
-      (child) =>
-        React.isValidElement(child) &&
-        (child as React.ReactElement).type === "code",
-    ) as React.ReactElement<{ className?: string }> | undefined;
-    const language = codeElement?.props.className?.match(/language-(\S+)/)?.[1];
-    if (language?.toLowerCase() === "mermaid") {
+function articleComponents({
+  diagramsEnlargeable,
+}: {
+  diagramsEnlargeable: boolean;
+}): Components {
+  return {
+    pre({ children, ...props }) {
+      const line = sourceLineOf(props);
+      const codeElement = React.Children.toArray(children).find(
+        (child) =>
+          React.isValidElement(child) &&
+          (child as React.ReactElement).type === "code",
+      ) as React.ReactElement<{ className?: string }> | undefined;
+      const language =
+        codeElement?.props.className?.match(/language-(\S+)/)?.[1];
+      if (language?.toLowerCase() === "mermaid") {
+        return (
+          <SourceLineBlock line={line}>
+            <MermaidDiagram
+              source={textOf(children)}
+              enlargeable={diagramsEnlargeable}
+            />
+          </SourceLineBlock>
+        );
+      }
       return (
         <SourceLineBlock line={line}>
-          <MermaidDiagram source={textOf(children)} />
+          <CodeBlock language={language}>{children}</CodeBlock>
         </SourceLineBlock>
       );
-    }
-    return (
-      <SourceLineBlock line={line}>
-        <CodeBlock language={language}>{children}</CodeBlock>
-      </SourceLineBlock>
-    );
-  },
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  p({ children, node, ...props }) {
-    const ogp = linkPreviewOgp(props);
-    if (ogp) {
-      return (
-        <SourceLineBlock line={sourceLineOf(props)}>
-          <LinkPreviewCard data={ogp} />
-        </SourceLineBlock>
-      );
-    }
-    return <p {...props}>{children}</p>;
-  },
-};
+    },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    p({ children, node, ...props }) {
+      const ogp = linkPreviewOgp(props);
+      if (ogp) {
+        return (
+          <SourceLineBlock line={sourceLineOf(props)}>
+            <LinkPreviewCard data={ogp} />
+          </SourceLineBlock>
+        );
+      }
+      return <p {...props}>{children}</p>;
+    },
+  };
+}
+
+const publishedArticleComponents = articleComponents({
+  diagramsEnlargeable: true,
+});
+// 編集プレビューではダブルクリックで本文の行へ移るため、1回目のクリックで図の拡大が開かないようにする
+const editorPreviewComponents = articleComponents({
+  diagramsEnlargeable: false,
+});
 
 function MarkdownContent({
   content,
@@ -111,7 +129,9 @@ function MarkdownContent({
           ? [rehypeHighlight, rehypeRaw, [rehypeSourceLine, { firstLine }]]
           : [rehypeHighlight, rehypeRaw]
       }
-      components={components}
+      components={
+        markSourceLines ? editorPreviewComponents : publishedArticleComponents
+      }
     >
       {content}
     </ReactMarkdown>

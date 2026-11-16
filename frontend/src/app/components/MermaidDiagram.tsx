@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDisplayedTheme } from "@/app/hooks/useDisplayedTheme";
 import { CodeBlock } from "@/app/components/CodeBlock";
 import type { Theme } from "@/app/utils/chosenTheme";
 
 type Props = {
   source: string;
+  enlargeable?: boolean;
 };
 
 type Diagram = { status: "drawn"; svg: string } | { status: "invalid" };
@@ -30,8 +31,10 @@ function remember(key: string, diagram: Diagram) {
   }
 }
 
-export function MermaidDiagram({ source }: Props) {
+export function MermaidDiagram({ source, enlargeable = false }: Props) {
   const theme = useDisplayedTheme();
+  const enlargedView = useRef<HTMLDialogElement>(null);
+  const [enlarged, setEnlarged] = useState(false);
   // 記法を書き換えている間は、新しい図ができるまで最後に出した図を出しておく
   const [lastShown, setLastShown] = useState<Diagram>();
   const remembered = theme
@@ -79,6 +82,10 @@ export function MermaidDiagram({ source }: Props) {
     };
   }, [source, theme]);
 
+  useEffect(() => {
+    if (enlarged) enlargedView.current?.showModal();
+  }, [enlarged]);
+
   if (lastShown?.status === "invalid") {
     return (
       <CodeBlock language="mermaid">
@@ -91,10 +98,43 @@ export function MermaidDiagram({ source }: Props) {
     return <div className="my-4 min-h-24" aria-busy="true" />;
   }
 
+  if (!enlargeable) {
+    return (
+      <div
+        className="my-4 flex justify-center overflow-x-auto"
+        dangerouslySetInnerHTML={{ __html: lastShown.svg }}
+      />
+    );
+  }
+
   return (
-    <div
-      className="my-4 flex justify-center overflow-x-auto"
-      dangerouslySetInnerHTML={{ __html: lastShown.svg }}
-    />
+    <div className="my-4 overflow-x-auto">
+      <button
+        type="button"
+        aria-label="図を拡大する"
+        className="flex w-full cursor-zoom-in justify-center"
+        onClick={() => setEnlarged(true)}
+      >
+        <span
+          className="contents"
+          dangerouslySetInnerHTML={{ __html: lastShown.svg }}
+        />
+      </button>
+      <dialog
+        ref={enlargedView}
+        aria-label="拡大した図"
+        className="m-auto max-h-none max-w-none cursor-zoom-out rounded bg-surface p-4 backdrop:bg-black/70"
+        onClick={() => enlargedView.current?.close()}
+        onClose={() => setEnlarged(false)}
+      >
+        {/* 同じ図を常に2つ置くと図の中の id が重複するため、開いている間だけ置く */}
+        {enlarged && (
+          <span
+            className="block [&_svg]:h-auto [&_svg]:max-h-[85vh] [&_svg]:w-[90vw] [&_svg]:!max-w-none"
+            dangerouslySetInnerHTML={{ __html: lastShown.svg }}
+          />
+        )}
+      </dialog>
+    </div>
   );
 }

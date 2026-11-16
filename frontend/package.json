@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.2.0",
+    "@panzoom/panzoom": "4.6.2",
     "@tailwindcss/typography": "^0.5.16",
     "@types/react-google-recaptcha": "^2.1.9",
     "date-fns": "^4.1.0",

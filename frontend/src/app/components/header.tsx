@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { FiMenu, FiX } from "react-icons/fi";
 import { ROUTES } from "@/app/routes";
 import ThemeToggle from "./ThemeToggle";
+import { MAIN_CONTENT_ID } from "@/app/utils/pageIds";
 
 const baseNavLink = `
   relative
@@ -54,7 +55,7 @@ export default function Header() {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
 
     // Disable interactions on main content when drawer is open
-    const mainContent = document.getElementById("main-content");
+    const mainContent = document.getElementById(MAIN_CONTENT_ID);
     if (mainContent) {
       if (isOpen) {
         mainContent.style.pointerEvents = "none";
@@ -73,8 +74,8 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 w-full border-b border-surface/40 bg-surface/35 backdrop-blur-lg shadow-[0_4px_20px_-8px_rgba(30,64,120,0.25)] font-sans z-30">
-        <div className="max-w-4xl w-full mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="sticky top-0 h-(--header-height) w-full border-b border-surface/40 bg-surface/35 backdrop-blur-lg shadow-[0_4px_20px_-8px_rgba(30,64,120,0.25)] font-sans z-30">
+        <div className="max-w-4xl w-full h-full mx-auto px-4 flex items-center justify-between">
           <Link
             href={ROUTES.HOME}
             className="text-2xl font-bold text-gray-900 transition-opacity hover:opacity-70"

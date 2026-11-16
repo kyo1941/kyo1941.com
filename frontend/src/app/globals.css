@@ -23,6 +23,9 @@ pre code:not(.hljs) {
 }
 
 :root {
+  /* 固定ヘッダーの下に重ねて置くものや、見出しへ移動したときに止める位置をこの高さから決める */
+  --header-height: 4rem;
+  --content-top-gap: 1.5rem;
   color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;

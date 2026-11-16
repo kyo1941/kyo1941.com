@@ -1,5 +1,6 @@
 import React from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
+import type { PluggableList } from "unified";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
@@ -13,6 +14,7 @@ import {
   type ToggleNode,
 } from "@/app/utils/preprocessToggles";
 import { rehypeSourceLine, sourceLineOf } from "@/app/utils/rehypeSourceLine";
+import { remarkHeadingIds } from "@/app/utils/remarkHeadingIds";
 import { remarkArticleHtml } from "@/app/utils/remarkArticleHtml";
 import { LinkPreviewCard } from "@/app/components/LinkPreviewCard";
 import { CodeBlock } from "@/app/components/CodeBlock";
@@ -22,6 +24,7 @@ type Props = {
   content: string;
   ogpData?: Record<string, OgpData>;
   markSourceLines?: boolean;
+  headingIdsBySegment?: Record<number, Record<number, string>>;
 };
 
 function textOf(node: React.ReactNode): string {
@@ -111,24 +114,28 @@ function MarkdownContent({
   firstLine,
   ogpData,
   markSourceLines,
+  headingIds,
 }: {
   content: string;
   firstLine: number;
   ogpData: Record<string, OgpData>;
   markSourceLines: boolean;
+  headingIds: Record<number, string> | undefined;
 }) {
+  const remarkPlugins: PluggableList = [
+    remarkGfm,
+    remarkArticleHtml,
+    [remarkLinkPreview, { ogpData }],
+  ];
+  if (headingIds)
+    remarkPlugins.push([remarkHeadingIds, { idsByOffset: headingIds }]);
+  const rehypePlugins: PluggableList = [rehypeHighlight, rehypeRaw];
+  if (markSourceLines) rehypePlugins.push([rehypeSourceLine, { firstLine }]);
+
   return (
     <ReactMarkdown
-      remarkPlugins={[
-        remarkGfm,
-        remarkArticleHtml,
-        [remarkLinkPreview, { ogpData }],
-      ]}
-      rehypePlugins={
-        markSourceLines
-          ? [rehypeHighlight, rehypeRaw, [rehypeSourceLine, { firstLine }]]
-          : [rehypeHighlight, rehypeRaw]
-      }
+      remarkPlugins={remarkPlugins}
+      rehypePlugins={rehypePlugins}
       components={
         markSourceLines ? editorPreviewComponents : publishedArticleComponents
       }
@@ -142,10 +149,12 @@ function SegmentRenderer({
   segment,
   ogpData,
   markSourceLines,
+  headingIdsBySegment,
 }: {
   segment: ToggleNode;
   ogpData: Record<string, OgpData>;
   markSourceLines: boolean;
+  headingIdsBySegment: Record<number, Record<number, string>> | undefined;
 }) {
   if (segment.type === "toggle") {
     return (
@@ -161,6 +170,7 @@ function SegmentRenderer({
             segment={child}
             ogpData={ogpData}
             markSourceLines={markSourceLines}
+            headingIdsBySegment={headingIdsBySegment}
           />
         ))}
       </details>
@@ -172,6 +182,7 @@ function SegmentRenderer({
       firstLine={segment.firstLine}
       ogpData={ogpData}
       markSourceLines={markSourceLines}
+      headingIds={headingIdsBySegment?.[segment.firstLine]}
     />
   );
 }
@@ -180,6 +191,7 @@ export function MarkdownRenderer({
   content,
   ogpData = {},
   markSourceLines = false,
+  headingIdsBySegment,
 }: Props) {
   const segments = parseToggleSegments(content);
   return (
@@ -190,6 +202,7 @@ export function MarkdownRenderer({
           segment={seg}
           ogpData={ogpData}
           markSourceLines={markSourceLines}
+          headingIdsBySegment={headingIdsBySegment}
         />
       ))}
     </div>

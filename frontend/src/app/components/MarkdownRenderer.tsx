@@ -14,7 +14,7 @@ import {
   type ToggleNode,
 } from "@/app/utils/preprocessToggles";
 import { rehypeSourceLine, sourceLineOf } from "@/app/utils/rehypeSourceLine";
-import { rehypeHeadingIds } from "@/app/utils/rehypeHeadingIds";
+import { remarkHeadingIds } from "@/app/utils/remarkHeadingIds";
 import { remarkArticleHtml } from "@/app/utils/remarkArticleHtml";
 import { LinkPreviewCard } from "@/app/components/LinkPreviewCard";
 import { CodeBlock } from "@/app/components/CodeBlock";
@@ -24,7 +24,7 @@ type Props = {
   content: string;
   ogpData?: Record<string, OgpData>;
   markSourceLines?: boolean;
-  headingIdsBySegment?: Record<number, string[]>;
+  headingIdsBySegment?: Record<number, Record<number, string>>;
 };
 
 function textOf(node: React.ReactNode): string {
@@ -120,18 +120,21 @@ function MarkdownContent({
   firstLine: number;
   ogpData: Record<string, OgpData>;
   markSourceLines: boolean;
-  headingIds: string[] | undefined;
+  headingIds: Record<number, string> | undefined;
 }) {
+  const remarkPlugins: PluggableList = [
+    remarkGfm,
+    remarkArticleHtml,
+    [remarkLinkPreview, { ogpData }],
+  ];
+  if (headingIds)
+    remarkPlugins.push([remarkHeadingIds, { idsByOffset: headingIds }]);
   const rehypePlugins: PluggableList = [rehypeHighlight, rehypeRaw];
   if (markSourceLines) rehypePlugins.push([rehypeSourceLine, { firstLine }]);
-  if (headingIds) rehypePlugins.push([rehypeHeadingIds, { ids: headingIds }]);
+
   return (
     <ReactMarkdown
-      remarkPlugins={[
-        remarkGfm,
-        remarkArticleHtml,
-        [remarkLinkPreview, { ogpData }],
-      ]}
+      remarkPlugins={remarkPlugins}
       rehypePlugins={rehypePlugins}
       components={
         markSourceLines ? editorPreviewComponents : publishedArticleComponents
@@ -151,7 +154,7 @@ function SegmentRenderer({
   segment: ToggleNode;
   ogpData: Record<string, OgpData>;
   markSourceLines: boolean;
-  headingIdsBySegment: Record<number, string[]> | undefined;
+  headingIdsBySegment: Record<number, Record<number, string>> | undefined;
 }) {
   if (segment.type === "toggle") {
     return (

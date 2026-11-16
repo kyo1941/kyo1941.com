@@ -14,6 +14,13 @@ const PIXELS_PER_LINE = 16;
 // マウスのホイールは1目盛りの量が大きく、トラックパッドのピンチは細かい量が連続して届くため、1回の量に上限を設けてどちらでも扱いやすい速さにする
 const WHEEL_ZOOM_RATE = 0.01;
 const WHEEL_ZOOM_DELTA_LIMIT = 50;
+const KEYBOARD_PAN_STEP = 80;
+const KEYBOARD_PAN_DIRECTIONS: Record<string, [number, number]> = {
+  ArrowLeft: [1, 0],
+  ArrowRight: [-1, 0],
+  ArrowUp: [0, 1],
+  ArrowDown: [0, -1],
+};
 
 // 倍率は掛け算で効くため、つまみの位置を倍率の対数に比例させて、どの倍率でも同じ動かし方で同じだけ変わるようにする
 function scaleAt(position: number) {
@@ -47,18 +54,18 @@ export function EnlargedDiagram({ svg, onClose }: Props) {
       if (!created) return;
       event.preventDefault();
       const scale = created.getScale();
+      const unit =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE ? PIXELS_PER_LINE : 1;
       if (event.ctrlKey || event.metaKey) {
         const delta = Math.max(
           -WHEEL_ZOOM_DELTA_LIMIT,
-          Math.min(WHEEL_ZOOM_DELTA_LIMIT, event.deltaY),
+          Math.min(WHEEL_ZOOM_DELTA_LIMIT, event.deltaY * unit),
         );
         created.zoomToPoint(scale * Math.exp(-delta * WHEEL_ZOOM_RATE), event, {
           animate: false,
         });
         return;
       }
-      const unit =
-        event.deltaMode === WheelEvent.DOM_DELTA_LINE ? PIXELS_PER_LINE : 1;
       created.pan(
         (-event.deltaX * unit) / scale,
         (-event.deltaY * unit) / scale,
@@ -94,6 +101,18 @@ export function EnlargedDiagram({ svg, onClose }: Props) {
     };
   }, []);
 
+  const panByKey = (event: React.KeyboardEvent) => {
+    const direction = KEYBOARD_PAN_DIRECTIONS[event.key];
+    if (!direction || !panzoom) return;
+    event.preventDefault();
+    const scale = panzoom.getScale();
+    panzoom.pan(
+      (direction[0] * KEYBOARD_PAN_STEP) / scale,
+      (direction[1] * KEYBOARD_PAN_STEP) / scale,
+      { relative: true },
+    );
+  };
+
   return (
     <dialog
       ref={view}
@@ -110,7 +129,13 @@ export function EnlargedDiagram({ svg, onClose }: Props) {
         }
       }}
     >
-      <div className="h-full w-full overflow-hidden select-none">
+      <div
+        tabIndex={0}
+        role="group"
+        aria-label="図の表示範囲。矢印キーで移動する"
+        className="h-full w-full overflow-hidden select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+        onKeyDown={panByKey}
+      >
         <div
           ref={diagram}
           className="h-full w-full p-4 [&_svg]:h-full [&_svg]:w-full [&_svg]:!max-w-none"

@@ -2,6 +2,7 @@ import PageShell from "@/app/components/PageShell";
 import BackButton from "@/app/components/BackButton";
 import { MarkdownRenderer } from "@/app/components/MarkdownRenderer";
 import { TableOfContents } from "@/app/components/TableOfContents";
+import { hasTableOfContents } from "@/app/utils/tableOfContents";
 import type { OgpData } from "@/app/types/ogp";
 
 type MarkdownDetailData = {
@@ -44,7 +45,13 @@ export function MarkdownDetailPage({
   }
 
   return (
-    <PageShell aside={<TableOfContents articleBodyId={ARTICLE_BODY_ID} />}>
+    <PageShell
+      aside={
+        hasTableOfContents(data.content) ? (
+          <TableOfContents articleBodyId={ARTICLE_BODY_ID} />
+        ) : undefined
+      }
+    >
       {/* 長文を読ませるページなので、可読性を優先してサーフェス（背景）をつける。
           戻るボタンもサーフェス外に置かず、同じ読みやすい面の中に含める */}
       <article className="sky-surface p-8 sm:p-12">

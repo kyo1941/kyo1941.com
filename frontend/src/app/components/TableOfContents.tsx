@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FiList } from "react-icons/fi";
+import { TABLE_OF_CONTENTS_MIN_HEADINGS } from "@/app/utils/tableOfContents";
 
 type Props = {
   articleBodyId: string;
@@ -15,7 +16,6 @@ type Heading = {
 
 const HEADING_SELECTOR = "h1, h2, h3, h4";
 const NARROW_LIST_ID = "table-of-contents";
-const MIN_HEADINGS = 2;
 // 見出しへ移動したときに止まる位置まで見出しが上がってきたら、その見出しを読んでいるとみなす
 const READING_LINE_TOLERANCE = 8;
 
@@ -127,8 +127,7 @@ export function TableOfContents({ articleBodyId }: Props) {
     };
   }, [articleBodyId]);
 
-  if (headings.length < MIN_HEADINGS) return null;
-
+  const shown = headings.length >= TABLE_OF_CONTENTS_MIN_HEADINGS;
   const topLevel = Math.min(...headings.map((heading) => heading.level));
   const jump = (event: React.MouseEvent, id: string) => {
     event.preventDefault();
@@ -160,30 +159,39 @@ export function TableOfContents({ articleBodyId }: Props) {
   // 目次と目次のボタンは、スクロールする前の本文のカードと上端が揃うよう、ヘッダーの高さと本文の上の余白の分だけ下げる
   return (
     <div className="contents [--narrow-button-height:2.25rem]">
-      <nav
-        aria-label="目次"
-        className="sticky top-[calc(var(--header-height)+var(--content-top-gap))] ml-2 hidden max-h-[calc(100vh-var(--header-height)-2*var(--content-top-gap))] w-56 overflow-y-auto p-5 backdrop-blur sky-surface lg:block"
-      >
-        <p className="mb-2 text-sm font-bold text-gray-900">目次</p>
-        {list}
-      </nav>
-      <button
-        type="button"
-        popoverTarget={NARROW_LIST_ID}
-        className="fixed top-[calc(var(--header-height)+var(--content-top-gap))] right-4 z-20 flex h-(--narrow-button-height) items-center gap-1 rounded border border-gray-400/60 bg-surface/90 px-3 text-sm text-gray-900 shadow backdrop-blur lg:hidden"
-      >
-        <FiList aria-hidden="true" />
-        目次
-      </button>
-      <div
-        ref={narrowList}
-        id={NARROW_LIST_ID}
-        popover="auto"
-        aria-label="目次"
-        className="fixed inset-auto top-[calc(var(--header-height)+var(--content-top-gap)+var(--narrow-button-height)+0.5rem)] right-4 m-0 max-h-[60vh] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto p-5 shadow-lg backdrop-blur sky-surface"
-      >
-        {list}
+      {/* 見出しは表示後に集めるため、目次が出る前後で本文の幅が変わって段落が折り返し直されないよう、目次の列の幅は最初から確保しておく */}
+      <div className="ml-2 hidden h-full w-56 lg:block">
+        {shown && (
+          <nav
+            aria-label="目次"
+            className="sticky top-[calc(var(--header-height)+var(--content-top-gap))] max-h-[calc(100vh-var(--header-height)-2*var(--content-top-gap))] overflow-y-auto p-5 backdrop-blur sky-surface"
+          >
+            <p className="mb-2 text-sm font-bold text-gray-900">目次</p>
+            {list}
+          </nav>
+        )}
       </div>
+      {shown && (
+        <>
+          <button
+            type="button"
+            popoverTarget={NARROW_LIST_ID}
+            className="fixed top-[calc(var(--header-height)+var(--content-top-gap))] right-4 z-20 flex h-(--narrow-button-height) items-center gap-1 rounded border border-gray-400/60 bg-surface/90 px-3 text-sm text-gray-900 shadow backdrop-blur lg:hidden"
+          >
+            <FiList aria-hidden="true" />
+            目次
+          </button>
+          <div
+            ref={narrowList}
+            id={NARROW_LIST_ID}
+            popover="auto"
+            aria-label="目次"
+            className="fixed inset-auto top-[calc(var(--header-height)+var(--content-top-gap)+var(--narrow-button-height)+0.5rem)] right-4 m-0 max-h-[60vh] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto p-5 shadow-lg backdrop-blur sky-surface"
+          >
+            {list}
+          </div>
+        </>
+      )}
     </div>
   );
 }

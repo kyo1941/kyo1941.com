@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FiArrowRight } from "react-icons/fi";
-import { Blog } from "@/app/repository/blogRepository";
+import { BlogSummary } from "@/app/repository/blogRepository";
 import { ROUTES } from "@/app/routes";
 
 const cardBase = "group/card relative overflow-hidden sky-tile-link";
@@ -12,7 +12,7 @@ function featuredSpan(restCount: number): string {
   return "md:col-span-2 md:row-span-2";
 }
 
-export default function BlogListSection({ blogs }: { blogs: Blog[] }) {
+export default function BlogListSection({ blogs }: { blogs: BlogSummary[] }) {
   // ui/blog の一覧は均一グリッドだが、ホームだけ最新1件を大きく見せる例外レイアウトにしている
   const [featured, ...rest] = blogs;
 

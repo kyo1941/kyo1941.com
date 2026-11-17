@@ -5,6 +5,7 @@ import my.backend.db.schema.BlogTagsTable
 import my.backend.db.schema.TagTable
 import my.backend.dto.BlogRequestDto
 import my.backend.dto.BlogResponseDto
+import my.backend.dto.BlogSummaryDto
 import my.backend.util.DateParser
 import my.backend.util.SlugGenerator
 import org.jetbrains.exposed.sql.*
@@ -17,7 +18,7 @@ interface BlogRepository {
         tags: List<String>? = null,
         keyword: String? = null,
         includeDrafts: Boolean = false,
-    ): List<BlogResponseDto>
+    ): List<BlogSummaryDto>
 
     suspend fun findBySlug(slug: String): BlogResponseDto?
 
@@ -37,9 +38,17 @@ class BlogRepositoryImpl : BlogRepository {
         tags: List<String>?,
         keyword: String?,
         includeDrafts: Boolean,
-    ): List<BlogResponseDto> =
+    ): List<BlogSummaryDto> =
         newSuspendedTransaction {
-            val query = BlogTable.selectAll()
+            val query =
+                BlogTable.select(
+                    BlogTable.id,
+                    BlogTable.slug,
+                    BlogTable.title,
+                    BlogTable.description,
+                    BlogTable.date,
+                    BlogTable.isDraft,
+                )
 
             if (!includeDrafts) {
                 query.andWhere { BlogTable.isDraft eq false }
@@ -76,7 +85,7 @@ class BlogRepositoryImpl : BlogRepository {
                     .groupBy { it[BlogTagsTable.blogId] }
                     .mapValues { entry -> entry.value.map { it[TagTable.name] } }
 
-            resultRows.map { toBlogResponseDto(it, tagsMap[it[BlogTable.id]] ?: emptyList()) }
+            resultRows.map { toBlogSummaryDto(it, tagsMap[it[BlogTable.id]] ?: emptyList()) }
         }
 
     override suspend fun findBySlug(slug: String): BlogResponseDto? =
@@ -146,6 +155,20 @@ class BlogRepositoryImpl : BlogRepository {
 
             BlogTable.deleteWhere { BlogTable.id eq id } > 0
         }
+
+    private fun toBlogSummaryDto(
+        row: ResultRow,
+        tags: List<String>,
+    ): BlogSummaryDto {
+        return BlogSummaryDto(
+            slug = row[BlogTable.slug],
+            title = row[BlogTable.title],
+            date = row[BlogTable.date].format(DateParser.dateFormatter),
+            description = row[BlogTable.description],
+            tags = tags,
+            isDraft = row[BlogTable.isDraft],
+        )
+    }
 
     private fun toBlogResponseDto(
         row: ResultRow,

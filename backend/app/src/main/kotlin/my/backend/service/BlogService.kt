@@ -2,6 +2,7 @@ package my.backend.service
 
 import my.backend.dto.BlogRequestDto
 import my.backend.dto.BlogResponseDto
+import my.backend.dto.BlogSummaryDto
 import my.backend.repository.BlogRepository
 import my.backend.util.stripHtmlTags
 
@@ -15,7 +16,7 @@ class BlogService(private val blogRepository: BlogRepository) {
         tags: List<String>? = null,
         keyword: String? = null,
         includeDrafts: Boolean = false,
-    ): List<BlogResponseDto> {
+    ): List<BlogSummaryDto> {
         if (limit > MAX_LIMIT) {
             throw IllegalArgumentException("limit の最大値は $MAX_LIMIT です。")
         }

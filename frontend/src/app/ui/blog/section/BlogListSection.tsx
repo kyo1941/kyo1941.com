@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useBlogList } from "@/app/hooks/blog/useBlogList";
-import type { Blog } from "@/app/repository/blogRepository";
+import type { BlogSummary } from "@/app/repository/blogRepository";
 import { ROUTES } from "@/app/routes";
 
 export default function BlogListSection({
   initialBlogs,
 }: {
-  initialBlogs: Blog[];
+  initialBlogs: BlogSummary[];
 }) {
   const { blogs } = useBlogList(initialBlogs);
 

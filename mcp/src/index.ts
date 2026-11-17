@@ -150,7 +150,7 @@ server.registerTool(
   {
     title: "ブログ記事一覧",
     description:
-      "ブログ記事の一覧を取得する（下書きを含む）。タグやキーワードで絞り込める。",
+      "ブログ記事の一覧を取得する（下書きを含む）。タグやキーワードで絞り込める。本文は含まないため、本文は get_blog で取得する。",
     inputSchema: {
       limit: z
         .number()

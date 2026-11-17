@@ -23,6 +23,20 @@ data class BlogRequestDto(
 )
 
 /**
+ * ブログ記事一覧の1件を表すDTO
+ * 一覧では本文を使わず、記事ごとの本文まで返すと応答が記事の長さに比例して大きくなるため、本文を含めない
+ */
+@Serializable
+data class BlogSummaryDto(
+    val slug: String,
+    val title: String,
+    val date: String,
+    val description: String,
+    val tags: List<String>,
+    val isDraft: Boolean = false,
+)
+
+/**
  * ブログ記事情報のレスポンスを表すDTO
  * クライアントへの返却に必要な全ての情報を含む
  *

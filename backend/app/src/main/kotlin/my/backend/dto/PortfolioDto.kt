@@ -17,6 +17,20 @@ data class PortfolioRequestDto(
 )
 
 /**
+ * ポートフォリオ一覧の1件を表すDTO
+ * 一覧では本文を使わず、作品ごとの本文まで返すと応答が本文の長さに比例して大きくなるため、本文を含めない
+ */
+@Serializable
+data class PortfolioSummaryDto(
+    val slug: String,
+    val title: String,
+    val date: String,
+    val description: String,
+    val coverImage: String? = null,
+    val isDraft: Boolean = false,
+)
+
+/**
  * ポートフォリオ情報のレスポンスを表すDTO
  * クライアントへの返却に必要な全ての情報を含む
  */

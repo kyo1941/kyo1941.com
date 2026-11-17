@@ -3,6 +3,7 @@ package my.backend.repository
 import my.backend.db.schema.PortfolioTable
 import my.backend.dto.PortfolioRequestDto
 import my.backend.dto.PortfolioResponseDto
+import my.backend.dto.PortfolioSummaryDto
 import my.backend.util.DateParser
 import my.backend.util.SlugGenerator
 import org.jetbrains.exposed.sql.*
@@ -13,7 +14,7 @@ interface PortfolioRepository {
     suspend fun findAll(
         limit: Int? = null,
         includeDrafts: Boolean = false,
-    ): List<PortfolioResponseDto>
+    ): List<PortfolioSummaryDto>
 
     suspend fun findBySlug(slug: String): PortfolioResponseDto?
 
@@ -31,9 +32,17 @@ class PortfolioRepositoryImpl : PortfolioRepository {
     override suspend fun findAll(
         limit: Int?,
         includeDrafts: Boolean,
-    ): List<PortfolioResponseDto> =
+    ): List<PortfolioSummaryDto> =
         newSuspendedTransaction {
-            val query = PortfolioTable.selectAll()
+            val query =
+                PortfolioTable.select(
+                    PortfolioTable.slug,
+                    PortfolioTable.title,
+                    PortfolioTable.description,
+                    PortfolioTable.coverImage,
+                    PortfolioTable.date,
+                    PortfolioTable.isDraft,
+                )
 
             if (!includeDrafts) {
                 query.andWhere { PortfolioTable.isDraft eq false }
@@ -42,7 +51,7 @@ class PortfolioRepositoryImpl : PortfolioRepository {
             query.orderBy(PortfolioTable.date to SortOrder.DESC)
 
             val resultQuery = if (limit != null) query.limit(limit) else query
-            resultQuery.map { toPortfolioResponseDto(it) }
+            resultQuery.map { toPortfolioSummaryDto(it) }
         }
 
     override suspend fun findBySlug(slug: String): PortfolioResponseDto? =
@@ -94,6 +103,17 @@ class PortfolioRepositoryImpl : PortfolioRepository {
         newSuspendedTransaction {
             PortfolioTable.deleteWhere { PortfolioTable.slug eq slug } > 0
         }
+
+    private fun toPortfolioSummaryDto(row: ResultRow): PortfolioSummaryDto {
+        return PortfolioSummaryDto(
+            slug = row[PortfolioTable.slug],
+            title = row[PortfolioTable.title],
+            date = row[PortfolioTable.date].format(DateParser.dateFormatter),
+            description = row[PortfolioTable.description],
+            coverImage = row[PortfolioTable.coverImage],
+            isDraft = row[PortfolioTable.isDraft],
+        )
+    }
 
     private fun toPortfolioResponseDto(row: ResultRow): PortfolioResponseDto {
         return PortfolioResponseDto(

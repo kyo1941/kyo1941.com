@@ -2,6 +2,7 @@ package my.backend.service
 
 import my.backend.dto.PortfolioRequestDto
 import my.backend.dto.PortfolioResponseDto
+import my.backend.dto.PortfolioSummaryDto
 import my.backend.repository.PortfolioRepository
 import my.backend.util.stripHtmlTags
 
@@ -13,7 +14,7 @@ class PortfolioService(private val portfolioRepository: PortfolioRepository) {
     suspend fun getPortfolios(
         limit: Int = MAX_LIMIT,
         includeDrafts: Boolean = false,
-    ): List<PortfolioResponseDto> {
+    ): List<PortfolioSummaryDto> {
         if (limit > MAX_LIMIT) {
             throw IllegalArgumentException("limit の最大値は $MAX_LIMIT です。")
         }

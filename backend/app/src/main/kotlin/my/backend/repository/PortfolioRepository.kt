@@ -1,8 +1,8 @@
 package my.backend.repository
 
 import my.backend.db.schema.PortfolioTable
+import my.backend.dto.PortfolioDetailDto
 import my.backend.dto.PortfolioRequestDto
-import my.backend.dto.PortfolioResponseDto
 import my.backend.dto.PortfolioSummaryDto
 import my.backend.util.DateParser
 import my.backend.util.SlugGenerator
@@ -16,14 +16,14 @@ interface PortfolioRepository {
         includeDrafts: Boolean = false,
     ): List<PortfolioSummaryDto>
 
-    suspend fun findBySlug(slug: String): PortfolioResponseDto?
+    suspend fun findBySlug(slug: String): PortfolioDetailDto?
 
-    suspend fun create(portfolio: PortfolioRequestDto): PortfolioResponseDto
+    suspend fun create(portfolio: PortfolioRequestDto): PortfolioDetailDto
 
     suspend fun update(
         slug: String,
         portfolio: PortfolioRequestDto,
-    ): PortfolioResponseDto?
+    ): PortfolioDetailDto?
 
     suspend fun delete(slug: String): Boolean
 }
@@ -54,14 +54,14 @@ class PortfolioRepositoryImpl : PortfolioRepository {
             resultQuery.map { toPortfolioSummaryDto(it) }
         }
 
-    override suspend fun findBySlug(slug: String): PortfolioResponseDto? =
+    override suspend fun findBySlug(slug: String): PortfolioDetailDto? =
         newSuspendedTransaction {
             PortfolioTable.selectAll().where { PortfolioTable.slug eq slug }
                 .singleOrNull()
-                ?.let { toPortfolioResponseDto(it) }
+                ?.let { toPortfolioDetailDto(it) }
         }
 
-    override suspend fun create(portfolio: PortfolioRequestDto): PortfolioResponseDto =
+    override suspend fun create(portfolio: PortfolioRequestDto): PortfolioDetailDto =
         newSuspendedTransaction {
             val newSlug = SlugGenerator.generate()
             PortfolioTable.insert {
@@ -74,13 +74,13 @@ class PortfolioRepositoryImpl : PortfolioRepository {
                 it[isDraft] = portfolio.isDraft
             }
 
-            PortfolioResponseDto.fromRequestDto(portfolio, newSlug)
+            PortfolioDetailDto.fromRequestDto(portfolio, newSlug)
         }
 
     override suspend fun update(
         slug: String,
         portfolio: PortfolioRequestDto,
-    ): PortfolioResponseDto? =
+    ): PortfolioDetailDto? =
         newSuspendedTransaction {
             val updatedRows =
                 PortfolioTable.update({ PortfolioTable.slug eq slug }) {
@@ -93,7 +93,7 @@ class PortfolioRepositoryImpl : PortfolioRepository {
                 }
 
             if (updatedRows > 0) {
-                PortfolioResponseDto.fromRequestDto(portfolio, slug)
+                PortfolioDetailDto.fromRequestDto(portfolio, slug)
             } else {
                 null
             }
@@ -115,8 +115,8 @@ class PortfolioRepositoryImpl : PortfolioRepository {
         )
     }
 
-    private fun toPortfolioResponseDto(row: ResultRow): PortfolioResponseDto {
-        return PortfolioResponseDto(
+    private fun toPortfolioDetailDto(row: ResultRow): PortfolioDetailDto {
+        return PortfolioDetailDto(
             slug = row[PortfolioTable.slug],
             title = row[PortfolioTable.title],
             date = row[PortfolioTable.date].format(DateParser.dateFormatter),

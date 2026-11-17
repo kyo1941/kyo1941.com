@@ -1,7 +1,7 @@
 package my.backend.service
 
+import my.backend.dto.PortfolioDetailDto
 import my.backend.dto.PortfolioRequestDto
-import my.backend.dto.PortfolioResponseDto
 import my.backend.dto.PortfolioSummaryDto
 import my.backend.repository.PortfolioRepository
 import my.backend.util.stripHtmlTags
@@ -21,18 +21,18 @@ class PortfolioService(private val portfolioRepository: PortfolioRepository) {
         return portfolioRepository.findAll(limit, includeDrafts)
     }
 
-    suspend fun getPortfolioBySlug(slug: String): PortfolioResponseDto? {
+    suspend fun getPortfolioBySlug(slug: String): PortfolioDetailDto? {
         return portfolioRepository.findBySlug(slug)
     }
 
-    suspend fun createPortfolio(portfolio: PortfolioRequestDto): PortfolioResponseDto {
+    suspend fun createPortfolio(portfolio: PortfolioRequestDto): PortfolioDetailDto {
         return portfolioRepository.create(portfolio.sanitized())
     }
 
     suspend fun updatePortfolio(
         slug: String,
         portfolio: PortfolioRequestDto,
-    ): PortfolioResponseDto? {
+    ): PortfolioDetailDto? {
         return portfolioRepository.update(slug, portfolio.sanitized())
     }
 

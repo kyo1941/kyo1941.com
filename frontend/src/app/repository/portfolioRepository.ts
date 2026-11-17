@@ -1,5 +1,5 @@
-export type { Portfolio } from "@/app/types/portfolio";
-import type { Portfolio } from "@/app/types/portfolio";
+export type { Portfolio, PortfolioSummary } from "@/app/types/portfolio";
+import type { Portfolio, PortfolioSummary } from "@/app/types/portfolio";
 import { API_BASE_URL, fetchJsonOrNull } from "@/app/network/publicApi";
 
 export type PortfolioSearchParams = {
@@ -9,7 +9,7 @@ export type PortfolioSearchParams = {
 export class PortfolioRepository {
   async getSortedPostsData(
     params?: PortfolioSearchParams,
-  ): Promise<Portfolio[]> {
+  ): Promise<PortfolioSummary[]> {
     const searchParams = new URLSearchParams();
 
     if (params?.limit) {
@@ -20,7 +20,7 @@ export class PortfolioRepository {
     const url = queryString
       ? `${API_BASE_URL}/api/portfolios?${queryString}`
       : `${API_BASE_URL}/api/portfolios`;
-    const portfolios = await fetchJsonOrNull<Portfolio[]>(url);
+    const portfolios = await fetchJsonOrNull<PortfolioSummary[]>(url);
 
     if (portfolios) {
       return portfolios.map((portfolio) => {

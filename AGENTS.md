@@ -283,6 +283,7 @@ API 概要:
   - `GET/POST /api/admin/tags`
   - `PUT /api/admin/tags/order`
   - `PUT/DELETE /api/admin/tags/{id}`
+- ブログ記事とポートフォリオの一覧（`GET /api/blogs`, `GET /api/admin/blogs`, `GET /api/portfolios`, `GET /api/admin/portfolios`）は本文を含みません。本文は `GET /api/blogs/{slug}`, `GET /api/portfolios/{slug}` で 1 件ずつ取得します。
 
 ## MCP サーバー
 

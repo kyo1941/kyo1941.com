@@ -8,6 +8,8 @@ export type Portfolio = {
   isDraft?: boolean;
 };
 
+export type PortfolioSummary = Omit<Portfolio, "content">;
+
 export type AdminPortfolioListItem = Pick<
   Portfolio,
   "slug" | "title" | "date" | "description"

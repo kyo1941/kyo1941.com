@@ -8,6 +8,8 @@ export type Blog = {
   isDraft?: boolean;
 };
 
+export type BlogSummary = Omit<Blog, "content">;
+
 export type AdminBlogListItem = Pick<
   Blog,
   "slug" | "title" | "date" | "description"

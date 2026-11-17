@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Blog, blogRepository } from "@/app/repository/blogRepository";
+import { BlogSummary, blogRepository } from "@/app/repository/blogRepository";
 import { useBlogSearchContext } from "./useBlogSearchContext";
 
-export function useBlogList(initialBlogs: Blog[]) {
-  const [blogs, setBlogs] = useState<Blog[]>(initialBlogs);
+export function useBlogList(initialBlogs: BlogSummary[]) {
+  const [blogs, setBlogs] = useState<BlogSummary[]>(initialBlogs);
   const [isLoading, setIsLoading] = useState(false);
   const { selectedTags, keyword } = useBlogSearchContext();
   const isFirstRender = useRef(true);

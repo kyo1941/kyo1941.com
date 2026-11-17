@@ -1,5 +1,5 @@
-export type { Blog } from "@/app/types/blog";
-import type { Blog } from "@/app/types/blog";
+export type { Blog, BlogSummary } from "@/app/types/blog";
+import type { Blog, BlogSummary } from "@/app/types/blog";
 import { API_BASE_URL, fetchJsonOrNull } from "@/app/network/publicApi";
 
 export type BlogSearchParams = {
@@ -9,7 +9,7 @@ export type BlogSearchParams = {
 };
 
 export class BlogRepository {
-  async getSortedPostsData(params?: BlogSearchParams): Promise<Blog[]> {
+  async getSortedPostsData(params?: BlogSearchParams): Promise<BlogSummary[]> {
     const searchParams = new URLSearchParams();
 
     if (params?.limit) {
@@ -26,7 +26,7 @@ export class BlogRepository {
     const url = queryString
       ? `${API_BASE_URL}/api/blogs?${queryString}`
       : `${API_BASE_URL}/api/blogs`;
-    const blogs = await fetchJsonOrNull<Blog[]>(url);
+    const blogs = await fetchJsonOrNull<BlogSummary[]>(url);
     return blogs || [];
   }
 

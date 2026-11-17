@@ -1,12 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { Portfolio } from "@/app/repository/portfolioRepository";
+import type { PortfolioSummary } from "@/app/repository/portfolioRepository";
 import { ROUTES } from "@/app/routes";
 
 export default function PortfolioListSection({
   portfolios,
 }: {
-  portfolios: Portfolio[];
+  portfolios: PortfolioSummary[];
 }) {
   return (
     <div className="flex flex-col gap-8">

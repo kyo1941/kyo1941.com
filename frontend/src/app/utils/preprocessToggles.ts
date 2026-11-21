@@ -14,8 +14,11 @@ export type ToggleNode = MarkdownSegment | ToggleSegment;
 type CodeFence = { marker: string; length: number };
 
 function codeFenceOpenedBy(line: string): CodeFence | null {
-  const match = line.match(/^ {0,3}(`{3,}|~{3,})/);
-  return match ? { marker: match[1][0], length: match[1].length } : null;
+  const match = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+  if (!match) return null;
+  const [, fence, info] = match;
+  if (fence[0] === "`" && info.includes("`")) return null;
+  return { marker: fence[0], length: fence.length };
 }
 
 function closesCodeFence(line: string, fence: CodeFence): boolean {

@@ -11,84 +11,92 @@ export type ToggleSegment = {
 };
 export type ToggleNode = MarkdownSegment | ToggleSegment;
 
-function detectBodyIndent(lines: string[], startIndex: number): number {
-  for (let i = startIndex; i < lines.length; i++) {
-    if (lines[i] !== "") {
-      const indentMatch = lines[i].match(/^(\s*)/);
-      return indentMatch ? indentMatch[1].length : 0;
-    }
-  }
-  return -1;
+type CodeFence = { marker: string; length: number };
+
+function codeFenceOpenedBy(line: string): CodeFence | null {
+  const match = line.match(/^ {0,3}(`{3,}|~{3,})/);
+  return match ? { marker: match[1][0], length: match[1].length } : null;
 }
 
-function parseLines(
-  lines: string[],
-  baseIndent: number,
-  firstLine: number,
-): ToggleNode[] {
+function closesCodeFence(line: string, fence: CodeFence): boolean {
+  const match = line.match(/^ {0,3}(`{3,}|~{3,})\s*$/);
+  return (
+    match !== null &&
+    match[1][0] === fence.marker &&
+    match[1].length >= fence.length
+  );
+}
+
+function nextCodeFence(line: string, open: CodeFence | null) {
+  if (open) return closesCodeFence(line, open) ? null : open;
+  return codeFenceOpenedBy(line);
+}
+
+function toggleOpenedBy(
+  line: string,
+): { colons: number; title: string } | null {
+  const match = line.match(/^(:{3,})details(?:\s+(.*?))?\s*$/);
+  return match ? { colons: match[1].length, title: match[2] ?? "" } : null;
+}
+
+// Zenn と同じく、開いた行と同じ数以上のコロンだけの行で閉じる。
+// そのため入れ子にするときは外側のコロンを増やす必要があり、内側と同じ数だと内側の閉じる行で外側も閉じる。
+function closingLineIndex(lines: string[], start: number, colons: number) {
+  let fence: CodeFence | null = null;
+  for (let i = start; i < lines.length; i++) {
+    const match = lines[i].match(/^(:{3,})\s*$/);
+    if (!fence && match && match[1].length >= colons) return i;
+    fence = nextCodeFence(lines[i], fence);
+  }
+  return lines.length;
+}
+
+function parseLines(lines: string[], firstLine: number): ToggleNode[] {
   const segments: ToggleNode[] = [];
-  let i = 0;
   let markdownLines: string[] = [];
   let markdownFirstLine = firstLine;
+  let fence: CodeFence | null = null;
 
-  while (i < lines.length) {
-    const line = lines[i];
-    const match = line.match(/^(\s*)> (.*)/);
-
-    if (match && match[1].length === baseIndent) {
-      if (markdownLines.length > 0) {
-        segments.push({
-          type: "markdown",
-          content: markdownLines.join("\n"),
-          firstLine: markdownFirstLine,
-        });
-        markdownLines = [];
-      }
-
-      const title = match[2];
-      const titleLine = firstLine + i;
-      i++;
-      const bodyFirstLine = firstLine + i;
-
-      const bodyIndent = detectBodyIndent(lines, i);
-      const bodyLines: string[] = [];
-
-      if (bodyIndent > baseIndent) {
-        while (i < lines.length) {
-          const bodyLine = lines[i];
-          if (bodyLine === "" || bodyLine.startsWith(" ".repeat(bodyIndent))) {
-            bodyLines.push(bodyLine === "" ? "" : bodyLine.slice(bodyIndent));
-            i++;
-          } else {
-            break;
-          }
-        }
-      }
-
-      segments.push({
-        type: "toggle",
-        title,
-        titleLine,
-        children: parseLines(bodyLines, 0, bodyFirstLine),
-      });
-    } else {
-      if (markdownLines.length === 0) markdownFirstLine = firstLine + i;
-      markdownLines.push(line);
-      i++;
-    }
-  }
-
-  if (markdownLines.length > 0) {
+  const flushMarkdown = () => {
+    if (markdownLines.length === 0) return;
     segments.push({
       type: "markdown",
       content: markdownLines.join("\n"),
       firstLine: markdownFirstLine,
     });
+    markdownLines = [];
+  };
+
+  let i = 0;
+  while (i < lines.length) {
+    const toggle = fence ? null : toggleOpenedBy(lines[i]);
+    if (toggle) {
+      flushMarkdown();
+      const bodyStart = i + 1;
+      const bodyEnd = closingLineIndex(lines, bodyStart, toggle.colons);
+      segments.push({
+        type: "toggle",
+        title: toggle.title,
+        titleLine: firstLine + i,
+        children: parseLines(
+          lines.slice(bodyStart, bodyEnd),
+          firstLine + bodyStart,
+        ),
+      });
+      i = bodyEnd + 1;
+      continue;
+    }
+
+    fence = nextCodeFence(lines[i], fence);
+    if (markdownLines.length === 0) markdownFirstLine = firstLine + i;
+    markdownLines.push(lines[i]);
+    i++;
   }
 
+  flushMarkdown();
   return segments;
 }
 
 export function parseToggleSegments(markdown: string): ToggleNode[] {
-  return parseLines(markdown.split("\n"), 0, 1);
+  return parseLines(markdown.split("\n"), 1);
 }

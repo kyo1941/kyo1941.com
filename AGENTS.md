@@ -127,6 +127,7 @@ backend の `application.yaml` は gitignore 対象です。新しい設定キ�
 - Markdown 表示に `react-markdown`, `remark-gfm`, `rehype-highlight`, `rehype-raw`
 - Markdown 中の ` ```mermaid ` コードブロックの図の描画に `mermaid`
 - 記事中の HTML は `frontend/src/app/utils/remarkArticleHtml.ts` の許可リストにある小文字のタグだけを HTML として扱い、それ以外のタグの形をした文字列（`Flow<T>` など）は文字として表示します。使えるタグを増やすときはこの許可リストに足します。
+- 記事のアコーディオン（トグル）は、同じ本文を Zenn にも載せられるよう Zenn と同じ `:::details タイトル` 〜 `:::` で書きます。入れ子にするときは外側のコロンを増やします（`::::details` の中に `:::details`）。解析は `frontend/src/app/utils/preprocessToggles.ts` です。`> ` で始まる行は普通の引用です。
 
 主要ディレクトリ:
 

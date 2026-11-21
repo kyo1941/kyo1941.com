@@ -46,23 +46,19 @@ export function useMarkdownListEditor(setContent: (value: string) => void) {
 
       if (e.key === "Enter") {
         const listMatch = currentLine.match(/^(\s*)- (.*)/);
-        const toggleMatch = currentLine.match(/^(\s*)> (.*)/);
-        if (!listMatch && !toggleMatch) return;
+        if (!listMatch) return;
 
         e.preventDefault();
 
-        const match = listMatch ?? toggleMatch;
-        const prefix = listMatch ? "- " : "> ";
-        const indent = match![1];
-        const itemContent = match![2];
+        const [, indent, itemContent] = listMatch;
 
         if (itemContent !== "") {
-          const insertion = `\n${indent}${prefix}`;
+          const insertion = `\n${indent}- `;
           const newValue =
             value.slice(0, cursor) + insertion + value.slice(cursor);
           applyEdit(textarea, newValue, cursor + insertion.length);
         } else if (indent.length >= 2) {
-          const newLine = `${indent.slice(2)}${prefix}`;
+          const newLine = `${indent.slice(2)}- `;
           const newValue =
             value.slice(0, lineStart) + newLine + value.slice(lineEnd);
           applyEdit(textarea, newValue, lineStart + newLine.length);
@@ -74,7 +70,7 @@ export function useMarkdownListEditor(setContent: (value: string) => void) {
       }
 
       if (e.key === "Tab") {
-        const isListLine = /^\s*[->] /.test(currentLine);
+        const isListLine = /^\s*- /.test(currentLine);
         const inCodeBlock = isInsideCodeBlock(value, cursor);
 
         if (!isListLine && !inCodeBlock) return;

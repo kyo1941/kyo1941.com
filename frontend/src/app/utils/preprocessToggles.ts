@@ -42,7 +42,6 @@ function toggleOpenedBy(
   return match ? { colons: match[1].length, title: match[2] ?? "" } : null;
 }
 
-// 同じ本文を Zenn に載せたときと閉じる位置が変わらないよう、入れ子の対応は取らず、開いた行と同じ数以上のコロンだけの行で閉じる。
 function closingLineIndex(lines: string[], start: number, colons: number) {
   let fence: CodeFence | null = null;
   for (let i = start; i < lines.length; i++) {

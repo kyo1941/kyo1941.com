@@ -126,8 +126,7 @@ backend の `application.yaml` は gitignore 対象です。新しい設定キ�
 - `jose` による JWT 検証
 - Cloudflare Turnstile
 - Markdown 表示に `react-markdown`, `remark-gfm`, `rehype-highlight`, `rehype-raw`
-- Markdown 中の ` ```mermaid ` コードブロックの図の描画に `mermaid`
-- 記事中の HTML は `frontend/src/app/utils/remarkArticleHtml.ts` の許可リストにある小文字のタグだけを HTML として扱い、それ以外のタグの形をした文字列（`Flow<T>` など）は文字として表示します。使えるタグを増やすときはこの許可リストに足します。
+- 記事中の図の描画に `mermaid`
 - 記事の本文の書き方は `docs/article-writing.md` にまとめています。記事を書くときや、記事の Markdown の解析・表示を変えるときに参照してください。
 
 主要ディレクトリ:

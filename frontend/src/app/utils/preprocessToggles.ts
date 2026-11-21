@@ -1,3 +1,8 @@
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkGfm from "remark-gfm";
+import { visit } from "unist-util-visit";
+
 export type MarkdownSegment = {
   type: "markdown";
   content: string;
@@ -11,28 +16,16 @@ export type ToggleSegment = {
 };
 export type ToggleNode = MarkdownSegment | ToggleSegment;
 
-type CodeFence = { marker: string; length: number };
+const parser = unified().use(remarkParse).use(remarkGfm);
 
-function codeFenceOpenedBy(line: string): CodeFence | null {
-  const match = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
-  if (!match) return null;
-  const [, fence, info] = match;
-  if (fence[0] === "`" && info.includes("`")) return null;
-  return { marker: fence[0], length: fence.length };
-}
-
-function closesCodeFence(line: string, fence: CodeFence): boolean {
-  const match = line.match(/^ {0,3}(`{3,}|~{3,})\s*$/);
-  return (
-    match !== null &&
-    match[1][0] === fence.marker &&
-    match[1].length >= fence.length
-  );
-}
-
-function nextCodeFence(line: string, open: CodeFence | null) {
-  if (open) return closesCodeFence(line, open) ? null : open;
-  return codeFenceOpenedBy(line);
+function codeLinesOf(markdown: string): Set<number> {
+  const lines = new Set<number>();
+  visit(parser.parse(markdown), "code", (node) => {
+    const { start, end } = node.position ?? {};
+    if (!start || !end) return;
+    for (let line = start.line; line <= end.line; line++) lines.add(line);
+  });
+  return lines;
 }
 
 function toggleOpenedBy(
@@ -42,21 +35,20 @@ function toggleOpenedBy(
   return match ? { colons: match[1].length, title: match[2] ?? "" } : null;
 }
 
-function closingLineIndex(lines: string[], start: number, colons: number) {
-  let fence: CodeFence | null = null;
-  for (let i = start; i < lines.length; i++) {
-    const match = lines[i].match(/^(:{3,})\s*$/);
-    if (!fence && match && match[1].length >= colons) return i;
-    fence = nextCodeFence(lines[i], fence);
-  }
-  return lines.length;
+function closesToggle(line: string, colons: number): boolean {
+  const match = line.match(/^(:{3,})\s*$/);
+  return match !== null && match[1].length >= colons;
 }
 
-function parseLines(lines: string[], firstLine: number): ToggleNode[] {
+function parseLines(
+  lines: string[],
+  firstLine: number,
+  codeLines: Set<number>,
+): ToggleNode[] {
   const segments: ToggleNode[] = [];
   let markdownLines: string[] = [];
   let markdownFirstLine = firstLine;
-  let fence: CodeFence | null = null;
+  const isCode = (index: number) => codeLines.has(firstLine + index);
 
   const flushMarkdown = () => {
     if (markdownLines.length === 0) return;
@@ -70,11 +62,17 @@ function parseLines(lines: string[], firstLine: number): ToggleNode[] {
 
   let i = 0;
   while (i < lines.length) {
-    const toggle = fence ? null : toggleOpenedBy(lines[i]);
+    const toggle = isCode(i) ? null : toggleOpenedBy(lines[i]);
     if (toggle) {
       flushMarkdown();
       const bodyStart = i + 1;
-      const bodyEnd = closingLineIndex(lines, bodyStart, toggle.colons);
+      let bodyEnd = bodyStart;
+      while (
+        bodyEnd < lines.length &&
+        (isCode(bodyEnd) || !closesToggle(lines[bodyEnd], toggle.colons))
+      ) {
+        bodyEnd++;
+      }
       segments.push({
         type: "toggle",
         title: toggle.title,
@@ -82,13 +80,13 @@ function parseLines(lines: string[], firstLine: number): ToggleNode[] {
         children: parseLines(
           lines.slice(bodyStart, bodyEnd),
           firstLine + bodyStart,
+          codeLines,
         ),
       });
       i = bodyEnd + 1;
       continue;
     }
 
-    fence = nextCodeFence(lines[i], fence);
     if (markdownLines.length === 0) markdownFirstLine = firstLine + i;
     markdownLines.push(lines[i]);
     i++;
@@ -99,5 +97,5 @@ function parseLines(lines: string[], firstLine: number): ToggleNode[] {
 }
 
 export function parseToggleSegments(markdown: string): ToggleNode[] {
-  return parseLines(markdown.split("\n"), 1);
+  return parseLines(markdown.split("\n"), 1, codeLinesOf(markdown));
 }
